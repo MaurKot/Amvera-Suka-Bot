@@ -1,10 +1,12 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { SendDialogueBody, GiftNpcBody } from "@workspace/api-zod";
-import { db, npcDialogues, characters, worldEvents } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, npcDialogues, characters, worldEvents, inventoryItems } from "@workspace/db";
+import { and, eq } from "drizzle-orm";
 import { ai } from "../lib/gemini";
 import { publishEvent } from "../lib/realtime";
 import { getCurrentCharacter } from "../game/characterService";
+import { getCatalogItem, getShopCatalog, isMerchantRole } from "../game/shopCatalog";
+import { buildFallbackNpcReply } from "../game/npcFallback";
 import {
   adjustReputation,
   getDialogueHistory,
@@ -164,8 +166,14 @@ router.post("/npc/:npcId/dialogue", async (req: Request, res: Response) => {
       npcReply = validation.cleaned;
     }
   } catch (err) {
-    req.log.error({ err }, "Gemini dialogue call failed");
-    npcReply = `${npc.name} устало смотрит на тебя и не находит слов.`;
+    req.log.warn({ err: (err as Error)?.message }, "Gemini dialogue call failed — using templated fallback");
+    npcReply = buildFallbackNpcReply({
+      npc,
+      characterName: c.name,
+      tone: parsed.data.tone,
+      reputation,
+      playerMessage: parsed.data.content,
+    });
   }
 
   const influence = toneToInfluence(parsed.data.tone);
@@ -276,6 +284,138 @@ router.post("/npc/:npcId/gift", async (req: Request, res: Response) => {
     repName: getRepLevel(newRep).nameRu,
     silverLeft: c.silver - parsed.data.silver,
     message: `${npc.name} принимает подношение и кивает.`,
+  });
+});
+
+// --- Merchant / shop -------------------------------------------------------
+
+router.get("/npc/:npcId/shop", async (req: Request, res: Response) => {
+  const c = await getCurrentCharacter(req.sessionId);
+  if (!c) {
+    res.status(404).json({ error: "Персонаж не найден" });
+    return;
+  }
+  const npcId = String(req.params["npcId"]);
+  const npc = await getNpcById(npcId);
+  if (!npc) {
+    res.status(404).json({ error: "Собеседник не найден" });
+    return;
+  }
+  if (!isMerchantRole(npc.role)) {
+    res.status(400).json({ error: "Этот собеседник ничего не продаёт" });
+    return;
+  }
+  const catalog = getShopCatalog(npcId);
+  if (!catalog) {
+    res.json({ npcId, npcName: npc.name, greeting: "Лавка пуста.", items: [], silver: c.silver });
+    return;
+  }
+  res.json({
+    npcId,
+    npcName: npc.name,
+    greeting: catalog.greeting,
+    items: catalog.items,
+    silver: c.silver,
+  });
+});
+
+router.post("/npc/:npcId/shop/buy", async (req: Request, res: Response) => {
+  const c = await getCurrentCharacter(req.sessionId);
+  if (!c) {
+    res.status(404).json({ error: "Персонаж не найден" });
+    return;
+  }
+  const npcId = String(req.params["npcId"]);
+  const npc = await getNpcById(npcId);
+  if (!npc) {
+    res.status(404).json({ error: "Собеседник не найден" });
+    return;
+  }
+  if (npc.locationId !== c.locationId) {
+    res.status(400).json({ error: "Этого торговца здесь нет" });
+    return;
+  }
+  if (!isMerchantRole(npc.role)) {
+    res.status(400).json({ error: "Этот собеседник ничего не продаёт" });
+    return;
+  }
+  const catalogKey = typeof req.body?.catalogKey === "string" ? req.body.catalogKey : "";
+  const item = getCatalogItem(npcId, catalogKey);
+  if (!item) {
+    res.status(404).json({ error: "Такого товара нет на прилавке" });
+    return;
+  }
+  if (c.silver < item.price) {
+    res.status(400).json({ error: "Не хватает серебра" });
+    return;
+  }
+
+  // Stackable: increment quantity if existing same-key row exists.
+  if (item.stackable) {
+    const existing = await db
+      .select()
+      .from(inventoryItems)
+      .where(
+        and(
+          eq(inventoryItems.characterId, c.id),
+          eq(inventoryItems.itemKey, item.itemKey),
+        ),
+      )
+      .limit(1);
+    if (existing[0]) {
+      await db
+        .update(inventoryItems)
+        .set({ quantity: existing[0].quantity + 1 })
+        .where(eq(inventoryItems.id, existing[0].id));
+    } else {
+      await db.insert(inventoryItems).values({
+        characterId: c.id,
+        itemKey: item.itemKey,
+        name: item.name,
+        itemType: item.itemType,
+        rarity: item.rarity,
+        stats: item.stats,
+        quantity: 1,
+        equipped: false,
+      });
+    }
+  } else {
+    await db.insert(inventoryItems).values({
+      characterId: c.id,
+      itemKey: item.itemKey,
+      name: item.name,
+      itemType: item.itemType,
+      rarity: item.rarity,
+      stats: item.stats,
+      quantity: 1,
+      equipped: false,
+    });
+  }
+
+  const newSilver = c.silver - item.price;
+  await db.update(characters).set({ silver: newSilver }).where(eq(characters.id, c.id));
+
+  // Small rep gain: regular customer.
+  const newRep = await adjustReputation(c.id, npcId, 2);
+
+  await db.insert(worldEvents).values({
+    eventType: "shop_purchase",
+    actorId: c.id,
+    targetId: npcId,
+    locationId: c.locationId,
+    deltaRep: 2,
+    narrativeFlag: "shop_purchase",
+    severity: 1,
+    isPublic: false,
+    description: `Купил «${item.name}» у ${npc.name} за ${item.price} серебра`,
+  });
+
+  res.json({
+    ok: true,
+    purchased: { catalogKey: item.catalogKey, itemKey: item.itemKey, name: item.name, price: item.price },
+    silverLeft: newSilver,
+    reputation: newRep,
+    message: `${npc.name} принимает серебро и протягивает «${item.name}».`,
   });
 });
 

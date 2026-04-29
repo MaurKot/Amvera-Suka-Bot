@@ -1,22 +1,25 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Altera Echoes of Fate API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+  - name: meta
+  - name: character
+  - name: battle
+  - name: npc
+  - name: ledger
+  - name: inventory
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +27,672 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /meta/lore:
+    get:
+      operationId: getLore
+      tags: [meta]
+      summary: Lore — races and classes
+      responses:
+        "200":
+          description: Lore data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoreResponse"
+
+  /character:
+    get:
+      operationId: getCharacter
+      tags: [character]
+      summary: Get current character
+      responses:
+        "200":
+          description: Character or null
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CharacterResponse"
+    post:
+      operationId: createCharacter
+      tags: [character]
+      summary: Create a new character
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCharacterRequest"
+      responses:
+        "200":
+          description: Created character
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Character"
+    delete:
+      operationId: deleteCharacter
+      tags: [character]
+      summary: Delete current character (start over)
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+
+  /character/allocate:
+    post:
+      operationId: allocateStat
+      tags: [character]
+      summary: Spend a stat point
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AllocateStatRequest"
+      responses:
+        "200":
+          description: Updated character
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Character"
+
+  /character/rest:
+    post:
+      operationId: restCharacter
+      tags: [character]
+      summary: Rest to restore HP/Mana (costs silver)
+      responses:
+        "200":
+          description: Updated character
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Character"
+
+  /character/move:
+    post:
+      operationId: moveLocation
+      tags: [character]
+      summary: Move to a different location
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MoveRequest"
+      responses:
+        "200":
+          description: Updated character
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Character"
+
+  /battle:
+    get:
+      operationId: getActiveBattle
+      tags: [battle]
+      summary: Get current active battle if any
+      responses:
+        "200":
+          description: Battle or null
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BattleResponse"
+
+  /battle/start:
+    post:
+      operationId: startBattle
+      tags: [battle]
+      summary: Start a new battle against a chosen enemy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartBattleRequest"
+      responses:
+        "200":
+          description: Started battle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Battle"
+
+  /battle/action:
+    post:
+      operationId: battleAction
+      tags: [battle]
+      summary: Perform an action in battle (attack/defend/flee)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BattleActionRequest"
+      responses:
+        "200":
+          description: Battle state after action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Battle"
+
+  /npc:
+    get:
+      operationId: listNpcs
+      tags: [npc]
+      summary: List NPCs (optionally filtered by location)
+      parameters:
+        - name: locationId
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: NPC list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NPCWithReputation"
+
+  /npc/{npcId}:
+    get:
+      operationId: getNpc
+      tags: [npc]
+      parameters:
+        - name: npcId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: NPC details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NPCWithReputation"
+
+  /npc/{npcId}/dialogue:
+    get:
+      operationId: getDialogue
+      tags: [npc]
+      parameters:
+        - name: npcId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Dialogue history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DialogueMessage"
+    post:
+      operationId: sendDialogue
+      tags: [npc]
+      parameters:
+        - name: npcId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendDialogueRequest"
+      responses:
+        "200":
+          description: NPC response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DialogueResponse"
+
+  /npc/{npcId}/gift:
+    post:
+      operationId: giftNpc
+      tags: [npc]
+      summary: Give silver to an NPC (improves reputation)
+      parameters:
+        - name: npcId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GiftRequest"
+      responses:
+        "200":
+          description: Updated reputation and character
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GiftResponse"
+
+  /ledger:
+    get:
+      operationId: getLedger
+      tags: [ledger]
+      summary: Get the world memory ledger for current character
+      responses:
+        "200":
+          description: World events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LedgerEntry"
+
+  /inventory:
+    get:
+      operationId: getInventory
+      tags: [inventory]
+      summary: Get character inventory
+      responses:
+        "200":
+          description: Inventory items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InventoryItem"
+
+  /inventory/equip:
+    post:
+      operationId: equipItem
+      tags: [inventory]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EquipRequest"
+      responses:
+        "200":
+          description: Inventory after equip
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InventoryItem"
+
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
+        status: { type: string }
+
+    OkResponse:
+      type: object
+      required: [ok]
+      properties:
+        ok: { type: boolean }
+
+    Race:
+      type: object
+      required: [key, nameRu, nameEn, lore, bonuses]
+      properties:
+        key: { type: string }
+        nameRu: { type: string }
+        nameEn: { type: string }
+        lore: { type: string }
+        creatureForm: { type: string, nullable: true }
+        bonuses:
+          type: object
+          additionalProperties:
+            type: number
+
+    CharClassInfo:
+      type: object
+      required: [key, nameRu, desc, resource, startStats]
+      properties:
+        key: { type: string }
+        nameRu: { type: string }
+        desc: { type: string }
+        resource: { type: string }
+        startStats:
+          type: object
+          additionalProperties:
+            type: number
+
+    Location:
+      type: object
+      required: [id, name, region, description, type, isSafe]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        region: { type: string }
+        description: { type: string }
+        type: { type: string }
+        isSafe: { type: boolean }
+
+    EnemyTemplate:
+      type: object
+      required: [key, name, level, hp, damage, rewardSilver, rewardExp, locationId, lore]
+      properties:
+        key: { type: string }
+        name: { type: string }
+        level: { type: integer }
+        hp: { type: integer }
+        damage: { type: integer }
+        rewardSilver: { type: integer }
+        rewardExp: { type: integer }
+        locationId: { type: string }
+        lore: { type: string }
+
+    LoreResponse:
+      type: object
+      required: [races, classes, locations, enemies]
+      properties:
+        races:
+          type: array
+          items: { $ref: "#/components/schemas/Race" }
+        classes:
+          type: array
+          items: { $ref: "#/components/schemas/CharClassInfo" }
+        locations:
+          type: array
+          items: { $ref: "#/components/schemas/Location" }
+        enemies:
+          type: array
+          items: { $ref: "#/components/schemas/EnemyTemplate" }
+
+    Character:
+      type: object
+      required:
+        - id
+        - name
+        - race
+        - charClass
+        - level
+        - experience
+        - hp
+        - maxHp
+        - mana
+        - maxMana
+        - energy
+        - maxEnergy
+        - strength
+        - agility
+        - intelligence
+        - endurance
+        - intuition
+        - luck
+        - statPoints
+        - influencePoints
+        - silver
+        - locationId
+        - inBattle
+        - isAlive
+        - totalKills
+        - totalDeaths
+        - nextLevelExp
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        race: { type: string }
+        charClass: { type: string }
+        level: { type: integer }
+        experience: { type: integer }
+        nextLevelExp: { type: integer }
+        hp: { type: integer }
+        maxHp: { type: integer }
+        mana: { type: integer }
+        maxMana: { type: integer }
+        energy: { type: integer }
+        maxEnergy: { type: integer }
+        strength: { type: integer }
+        agility: { type: integer }
+        intelligence: { type: integer }
+        endurance: { type: integer }
+        intuition: { type: integer }
+        luck: { type: number }
+        statPoints: { type: integer }
+        influencePoints: { type: integer }
+        silver: { type: integer }
+        locationId: { type: string }
+        inBattle: { type: boolean }
+        isAlive: { type: boolean }
+        totalKills: { type: integer }
+        totalDeaths: { type: integer }
+
+    CharacterResponse:
+      type: object
+      required: [character]
+      properties:
+        character:
+          oneOf:
+            - $ref: "#/components/schemas/Character"
+            - type: "null"
+
+    CreateCharacterRequest:
+      type: object
+      required: [name, race, charClass]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 30
+        race: { type: string }
+        charClass: { type: string }
+
+    AllocateStatRequest:
+      type: object
+      required: [stat]
+      properties:
+        stat:
+          type: string
+          enum: [strength, agility, intelligence, endurance, intuition]
+
+    MoveRequest:
+      type: object
+      required: [locationId]
+      properties:
+        locationId: { type: string }
+
+    Battle:
+      type: object
+      required:
+        - id
+        - characterId
+        - enemyKey
+        - enemyName
+        - enemyLevel
+        - enemyHp
+        - enemyMaxHp
+        - characterHp
+        - status
+        - log
+        - rewardSilver
+        - rewardExp
+      properties:
+        id: { type: integer }
+        characterId: { type: integer }
+        enemyKey: { type: string }
+        enemyName: { type: string }
+        enemyLevel: { type: integer }
+        enemyHp: { type: integer }
+        enemyMaxHp: { type: integer }
+        characterHp: { type: integer }
         status:
           type: string
-      required:
-        - status
+          enum: [active, victory, defeat, fled]
+        log:
+          type: array
+          items:
+            $ref: "#/components/schemas/BattleLogEntry"
+        rewardSilver: { type: integer }
+        rewardExp: { type: integer }
 
+    BattleLogEntry:
+      type: object
+      required: [round, actor, action, text]
+      properties:
+        round: { type: integer }
+        actor:
+          type: string
+          enum: [player, enemy, system]
+        action: { type: string }
+        text: { type: string }
+        damage: { type: integer }
+        crit: { type: boolean }
+
+    BattleResponse:
+      type: object
+      required: [battle]
+      properties:
+        battle:
+          oneOf:
+            - $ref: "#/components/schemas/Battle"
+            - type: "null"
+
+    StartBattleRequest:
+      type: object
+      required: [enemyKey]
+      properties:
+        enemyKey: { type: string }
+
+    BattleActionRequest:
+      type: object
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [attack, heavy, defend, flee]
+
+    NPCWithReputation:
+      type: object
+      required:
+        - id
+        - name
+        - role
+        - locationId
+        - shortProfile
+        - voiceStyle
+        - faction
+        - reputation
+        - repName
+        - repIcon
+        - repBehavior
+        - tier
+      properties:
+        id: { type: string }
+        name: { type: string }
+        title: { type: string, nullable: true }
+        role: { type: string }
+        locationId: { type: string }
+        shortProfile: { type: string }
+        voiceStyle: { type: string }
+        faction: { type: string }
+        reputation: { type: integer }
+        repName: { type: string }
+        repIcon: { type: string }
+        repBehavior: { type: string }
+        tier: { type: integer }
+
+    DialogueMessage:
+      type: object
+      required: [id, role, content, createdAt]
+      properties:
+        id: { type: integer }
+        role:
+          type: string
+          enum: [player, npc, system]
+        content: { type: string }
+        createdAt: { type: string, format: date-time }
+
+    SendDialogueRequest:
+      type: object
+      required: [content, tone]
+      properties:
+        content: { type: string, minLength: 1, maxLength: 500 }
+        tone:
+          type: string
+          enum: [neutral, friendly, flirt, threat, insult, persuade]
+
+    DialogueResponse:
+      type: object
+      required: [npcReply, repDelta, newReputation, repName, eventTriggered]
+      properties:
+        npcReply: { type: string }
+        repDelta: { type: integer }
+        newReputation: { type: integer }
+        repName: { type: string }
+        eventTriggered: { type: string, nullable: true }
+
+    GiftRequest:
+      type: object
+      required: [silver]
+      properties:
+        silver:
+          type: integer
+          minimum: 1
+
+    GiftResponse:
+      type: object
+      required: [reputation, repName, silverLeft, message]
+      properties:
+        reputation: { type: integer }
+        repName: { type: string }
+        silverLeft: { type: integer }
+        message: { type: string }
+
+    LedgerEntry:
+      type: object
+      required: [id, eventType, description, deltaRep, severity, isPublic, createdAt]
+      properties:
+        id: { type: integer }
+        eventType: { type: string }
+        targetId: { type: string, nullable: true }
+        locationId: { type: string, nullable: true }
+        description: { type: string }
+        deltaRep: { type: integer }
+        severity: { type: integer }
+        isPublic: { type: boolean }
+        createdAt: { type: string, format: date-time }
+
+    InventoryItem:
+      type: object
+      required: [id, itemKey, name, itemType, rarity, quantity, equipped, stats]
+      properties:
+        id: { type: integer }
+        itemKey: { type: string }
+        name: { type: string }
+        itemType: { type: string }
+        rarity: { type: string }
+        quantity: { type: integer }
+        equipped: { type: boolean }
+        stats:
+          type: object
+          additionalProperties: true
+
+    EquipRequest:
+      type: object
+      required: [itemId]
+      properties:
+        itemId: { type: integer }

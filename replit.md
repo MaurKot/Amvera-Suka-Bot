@@ -1,27 +1,48 @@
-# Workspace
+# Altera: Echoes of Fate
 
-## Overview
+Тёмное фэнтези-MMORPG с живыми NPC на базе Gemini AI. Мир помнит каждое решение игрока — через систему Хроник (ledger), репутации (-2000..+2000) и нарративных флагов.
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+## Архитектура
 
-## Stack
+Монорепо на pnpm + TypeScript.
 
-- **Monorepo tool**: pnpm workspaces
-- **Node.js version**: 24
-- **Package manager**: pnpm
-- **TypeScript version**: 5.9
-- **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
+### Артефакты
+- `artifacts/altera` — React + Vite фронтенд игры (по пути `/`).
+- `artifacts/api-server` — Express + Drizzle бекенд игры (по пути `/api`).
+- `artifacts/mockup-sandbox` — sandbox для прототипов UI.
 
-## Key Commands
+### Общие библиотеки
+- `lib/db` — Drizzle схема (Postgres). Таблицы: `characters`, `npcs`, `npcDialogues`, `characterReputation`, `worldEvents` (Хроники), `battles`, `inventoryItems`.
+- `lib/api-spec` — OpenAPI контракт.
+- `lib/api-zod` — сгенерированные Zod-схемы и константы (`SendDialogueBody`, `CreateCharacterBody`, и т.д.).
+- `lib/api-client-react` — сгенерированные React Query хуки (`useGetCharacter`, `useSendDialogue`, и т.д.).
+- `lib/integrations-gemini-ai` — Gemini SDK через прокси Replit AI Integrations.
 
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- `pnpm --filter @workspace/api-server run dev` — run API server locally
+## Игровая модель: Три Закона
 
-See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+1. **LLM — это голос.** Gemini генерирует только текст реплики NPC.
+2. **TypeScript — это законы.** Все цифры (репутация, урон, награда, флаги) считает сервер.
+3. **Мир помнит.** Каждое значимое действие пишется в `worldEvents` с `narrativeFlag`. NPC видит флаги в промпте → последствия неотвратимы.
+
+## Игровой контент
+
+- **10 рас** (Ардаэн, Велхари, Сирн, и т.д.) с бонусами к статам.
+- **6 классов** (Воин Эха, Плетущий Руны, и т.д.) с уникальными ресурсами.
+- **6 локаций** (Площадь Ардвейла, Лес Шёпотов, Кузница Эха, и т.д.).
+- **5 типов врагов** с привязкой к локациям.
+- **7 NPC** в стартовых локациях, у каждого — `voiceStyle` и `knownFacts` для промпта.
+
+## Ключевые скрипты
+
+- `pnpm run typecheck` — проверка типов всего workspace.
+- `pnpm --filter @workspace/api-spec run codegen` — регенерация Zod/React Query из OpenAPI.
+
+## Переменные окружения
+
+- `DATABASE_URL` — Postgres (Replit DB).
+- `SESSION_SECRET` — для подписи сессий.
+- `AI_INTEGRATIONS_GEMINI_BASE_URL`, `AI_INTEGRATIONS_GEMINI_API_KEY` — прокси Gemini.
+
+## Сессии
+
+Без логина: куки `altera_sid` (HTTP-only, 1 год). Каждая сессия = свой персонаж в БД.

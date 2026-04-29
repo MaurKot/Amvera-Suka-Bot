@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Altera: Echoes of Fate"
+version = "1.0.0"
+id = "artifacts/altera"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18138
+
+[services.development]
+run = "pnpm --filter @workspace/altera run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/altera", "run", "build" ]
+publicDir = "artifacts/altera/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18138"
+BASE_PATH = "/"

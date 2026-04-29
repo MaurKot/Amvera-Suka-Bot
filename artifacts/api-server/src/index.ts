@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { seedNpcsIfEmpty } from "./game/npcSeed";
+import { seedWorldIfEmpty } from "./game/worldSeed";
 
 const rawPort = process.env["PORT"];
 
@@ -17,6 +18,11 @@ if (Number.isNaN(port) || port <= 0) {
 }
 
 async function start(): Promise<void> {
+  try {
+    await seedWorldIfEmpty(logger);
+  } catch (err) {
+    logger.error({ err }, "Failed to seed world");
+  }
   try {
     await seedNpcsIfEmpty(logger);
   } catch (err) {

@@ -19,6 +19,10 @@ export const characters = pgTable(
   {
     id: serial("id").primaryKey(),
     sessionId: text("session_id").notNull(),
+    telegramId: text("telegram_id"),
+    telegramUsername: text("telegram_username"),
+    referralCode: text("referral_code"),
+    referredBy: integer("referred_by"),
     name: text("name").notNull(),
     race: text("race").notNull(),
     charClass: text("char_class").notNull(),
@@ -55,6 +59,8 @@ export const characters = pgTable(
   },
   (t) => ({
     sessionIdx: uniqueIndex("characters_session_idx").on(t.sessionId),
+    telegramIdx: uniqueIndex("characters_telegram_idx").on(t.telegramId),
+    referralCodeIdx: uniqueIndex("characters_referral_code_idx").on(t.referralCode),
   }),
 );
 
@@ -172,3 +178,112 @@ export const battles = pgTable("battles", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 export type Battle = typeof battles.$inferSelect;
+
+export const locations = pgTable("locations", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  region: text("region").notNull(),
+  description: text("description").notNull(),
+  type: text("type").notNull(),
+  isSafe: boolean("is_safe").notNull().default(false),
+  isStarter: boolean("is_starter").notNull().default(false),
+  discoveredById: integer("discovered_by_id"),
+  discoveredByName: text("discovered_by_name"),
+  discoveredAt: timestamp("discovered_at", { withTimezone: true }),
+});
+export type Location = typeof locations.$inferSelect;
+
+export const factions = pgTable("factions", {
+  key: text("key").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  defaultRep: integer("default_rep").notNull().default(0),
+  isHostile: boolean("is_hostile").notNull().default(false),
+});
+export type Faction = typeof factions.$inferSelect;
+
+export const quests = pgTable("quests", {
+  id: text("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  type: text("type").notNull().default("general"),
+  giverId: text("giver_id"),
+  locationId: text("location_id"),
+  objectives: jsonb("objectives").notNull().default([]),
+  rewards: jsonb("rewards").notNull().default({}),
+  isStarter: boolean("is_starter").notNull().default(false),
+});
+export type Quest = typeof quests.$inferSelect;
+
+export const characterQuests = pgTable(
+  "character_quests",
+  {
+    characterId: integer("character_id").notNull(),
+    questId: text("quest_id").notNull(),
+    status: text("status").notNull().default("available"),
+    progress: jsonb("progress").notNull().default({}),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.characterId, t.questId] }),
+    statusIdx: index("char_quests_status_idx").on(t.characterId, t.status),
+  }),
+);
+export type CharacterQuest = typeof characterQuests.$inferSelect;
+
+export const achievements = pgTable("achievements", {
+  key: text("key").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  icon: text("icon").notNull().default("trophy"),
+  buffJson: jsonb("buff_json").notNull().default({}),
+  buffDurationSec: integer("buff_duration_sec").notNull().default(0),
+});
+export type Achievement = typeof achievements.$inferSelect;
+
+export const characterAchievements = pgTable(
+  "character_achievements",
+  {
+    characterId: integer("character_id").notNull(),
+    achievementKey: text("achievement_key").notNull(),
+    targetId: text("target_id"),
+    earnedAt: timestamp("earned_at", { withTimezone: true }).defaultNow().notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.characterId, t.achievementKey, t.targetId] }),
+    activeIdx: index("char_achievements_active_idx").on(t.characterId, t.expiresAt),
+  }),
+);
+export type CharacterAchievement = typeof characterAchievements.$inferSelect;
+
+export const bestiary = pgTable("bestiary", {
+  key: text("key").primaryKey(),
+  name: text("name").notNull(),
+  lore: text("lore").notNull(),
+  level: integer("level").notNull().default(1),
+  locationId: text("location_id"),
+  firstEncounteredById: integer("first_encountered_by_id"),
+  firstEncounteredByName: text("first_encountered_by_name"),
+  firstEncounteredAt: timestamp("first_encountered_at", { withTimezone: true }),
+  encounterCount: integer("encounter_count").notNull().default(0),
+});
+export type Bestiary = typeof bestiary.$inferSelect;
+
+export const referrals = pgTable(
+  "referrals",
+  {
+    id: serial("id").primaryKey(),
+    referrerId: integer("referrer_id").notNull(),
+    refereeId: integer("referee_id").notNull(),
+    code: text("code").notNull(),
+    rewardSilver: integer("reward_silver").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    refereeIdx: uniqueIndex("referrals_referee_idx").on(t.refereeId),
+    referrerIdx: index("referrals_referrer_idx").on(t.referrerId),
+  }),
+);
+export type Referral = typeof referrals.$inferSelect;

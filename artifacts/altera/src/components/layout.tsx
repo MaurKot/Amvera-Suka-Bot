@@ -1,80 +1,56 @@
-import { Link, useLocation } from "wouter";
-import { Book, Castle, Ghost, Shield, ScrollText, Swords, User } from "lucide-react";
+import { useGetCharacter } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
-import { useGetCharacter, getGetCharacterQueryKey } from "@workspace/api-client-react";
+import { BottomNav } from "@/components/bottom-nav";
 
-export function Layout({ children, className }: { children: React.ReactNode; className?: string }) {
-  const [location] = useLocation();
+export function Layout({
+  children,
+  className,
+  title,
+  subtitle,
+  hideNav,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  title?: string;
+  subtitle?: string;
+  hideNav?: boolean;
+}) {
   const { data: characterData } = useGetCharacter();
   const character = characterData?.character;
 
-  const navItems = [
-    { href: "/", label: "Врата", icon: Castle },
-    { href: "/character", label: "Душа", icon: User, hidden: !character },
-    { href: "/world", label: "Мир", icon: Ghost, hidden: !character },
-    { href: "/battle", label: "Битва", icon: Swords, hidden: !character },
-    { href: "/inventory", label: "Инвентарь", icon: Shield, hidden: !character },
-    { href: "/ledger", label: "Хроника", icon: ScrollText, hidden: !character },
-    { href: "/lore", label: "Знания", icon: Book },
-  ];
-
   return (
-    <div className="min-h-[100dvh] flex flex-col md:flex-row w-full max-w-5xl mx-auto px-4 py-6 md:py-12 gap-8 selection:bg-primary/30 selection:text-primary-foreground">
-      {/* Sidebar Navigation */}
-      <nav className="w-full md:w-48 flex-shrink-0 flex flex-col gap-2">
-        <div className="mb-8 hidden md:block">
-          <h1 className="text-xl font-serif text-primary tracking-widest uppercase">Altera</h1>
-          <p className="text-xs text-muted-foreground font-serif italic mt-1">Отголоски Судьбы</p>
-        </div>
-
-        <div className="flex md:flex-col overflow-x-auto md:overflow-visible pb-4 md:pb-0 gap-2 no-scrollbar">
-          {navItems.filter(item => !item.hidden).map((item) => {
-            const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
-            return (
-              <Link key={item.href} href={item.href} className="flex-shrink-0">
-                <div
-                  className={cn(
-                    "flex items-center gap-3 px-4 py-3 rounded-sm transition-all duration-300 font-serif border border-transparent",
-                    isActive
-                      ? "bg-primary/10 text-primary border-primary/20 shadow-[0_0_15px_rgba(var(--primary),0.1)]"
-                      : "text-muted-foreground hover:text-foreground hover:bg-white/5 hover:border-white/10"
-                  )}
-                >
-                  <item.icon className="w-4 h-4 opacity-70" />
-                  <span className="tracking-wide text-sm">{item.label}</span>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-
-        {character && (
-          <div className="mt-auto hidden md:block pt-8 border-t border-border/50">
-            <div className="text-xs text-muted-foreground font-serif uppercase tracking-widest mb-2">Состояние</div>
-            <div className="flex flex-col gap-2 text-sm font-mono">
-              <div className="flex justify-between items-center">
-                <span className="text-destructive/80">ЗДР</span>
-                <span>{character.hp}/{character.maxHp}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-secondary/80">МАНА</span>
-                <span>{character.mana}/{character.maxMana}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-primary/80">СЕРЕБРО</span>
-                <span>{character.silver}</span>
-              </div>
+    <div className="min-h-[100dvh] flex flex-col w-full max-w-2xl mx-auto bg-background text-foreground selection:bg-primary/30">
+      {(title || subtitle) && (
+        <header className="sticky top-0 z-30 px-4 pt-[env(safe-area-inset-top)] pb-3 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+          {title && (
+            <h1 className="text-lg font-serif text-primary tracking-wider uppercase truncate" data-testid="page-title">
+              {title}
+            </h1>
+          )}
+          {subtitle && (
+            <p className="text-xs text-muted-foreground font-serif italic truncate">{subtitle}</p>
+          )}
+          {character && (
+            <div className="mt-2 flex items-center gap-3 text-[11px] font-mono text-muted-foreground">
+              <span className="text-destructive/80">HP {character.hp}/{character.maxHp}</span>
+              <span className="text-secondary-foreground/80">MN {character.mana}/{character.maxMana}</span>
+              <span className="text-primary/80 ml-auto">⌬ {character.silver}</span>
             </div>
-          </div>
-        )}
-      </nav>
+          )}
+        </header>
+      )}
 
-      {/* Main Content Area */}
-      <main className={cn("flex-1 min-w-0 flex flex-col relative", className)}>
-        {/* Ambient background glow */}
-        <div className="absolute inset-0 bg-primary/5 blur-[120px] rounded-full pointer-events-none -z-10" />
+      <main
+        className={cn(
+          "flex-1 min-w-0 flex flex-col px-4 pt-4 pb-24 relative",
+          className,
+        )}
+      >
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/[0.06] via-background to-background pointer-events-none" />
         {children}
       </main>
+
+      {!hideNav && <BottomNav hasCharacter={!!character} />}
     </div>
   );
 }

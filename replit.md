@@ -61,9 +61,16 @@
 
 ## Ключевые скрипты
 
+- `bash scripts/dev.sh` — локальный dev: api-server на `:8080` + Vite (altera) на `:5000` с прокси `/api → 8080`. Это и есть workflow «Start application».
 - `pnpm run typecheck` — проверка типов всего workspace.
 - `pnpm --filter @workspace/db run push` — drizzle push (создание/синхронизация схем).
 - `pnpm --filter @workspace/api-spec run codegen` — регенерация Zod / React Query из OpenAPI (если правится `openapi.yaml`).
+
+## Dev-режим в Replit
+
+- Workflow «Start application» запускает `scripts/dev.sh`, который параллельно поднимает Express (`PORT=8080`, `NODE_ENV=development`) и Vite (`PORT=5000`, `BASE_PATH=/`).
+- В dev все `/api/*` запросы фронтенда проксируются Vite на `http://127.0.0.1:8080` (см. `artifacts/altera/vite.config.ts`, переменная `API_PROXY_TARGET`).
+- `lib/gemini.ts` инициализируется лениво — отсутствие `GOOGLE_API_KEY` не валит сервер на старте, ошибка возникает только при фактическом обращении к Gemini.
 
 ## Переменные окружения (production)
 

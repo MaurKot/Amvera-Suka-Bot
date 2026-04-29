@@ -68,9 +68,21 @@
 
 ## Dev-режим в Replit
 
-- Workflow «Start application» запускает `scripts/dev.sh`, который параллельно поднимает Express (`PORT=8080`, `NODE_ENV=development`) и Vite (`PORT=5000`, `BASE_PATH=/`).
+- Workflow `artifacts/altera: web` запускает Vite (`PORT=18138`, `BASE_PATH=/`).
+- Workflow `artifacts/api-server: API Server` запускает Express (`PORT=8080`, `NODE_ENV=development`).
+- Workflow `artifacts/mockup-sandbox: Component Preview Server` — для design-песочницы (по требованию).
+- Старый монолитный workflow «Start application» (запускал `scripts/dev.sh`) удалён — управление поручено артефактным workflow'ам, которые регистрируются автоматически по структуре `artifacts/*`.
 - В dev все `/api/*` запросы фронтенда проксируются Vite на `http://127.0.0.1:8080` (см. `artifacts/altera/vite.config.ts`, переменная `API_PROXY_TARGET`).
 - `lib/gemini.ts` инициализируется лениво — отсутствие `GOOGLE_API_KEY` не валит сервер на старте, ошибка возникает только при фактическом обращении к Gemini.
+
+## Мобильная оптимизация и торговля (апрель 2026)
+
+- `artifacts/altera/index.html`: viewport `viewport-fit=cover`, отключён pinch-zoom, `theme-color`.
+- `artifacts/altera/src/index.css`: `overscroll-behavior:none`, отключение tap-highlight, инпуты с font-size `16px` на ≤640px (защита от авто-зума iOS), убран user-select на кнопках.
+- Все основные страницы переписаны под mobile-first: `home.tsx` (создание персонажа в одну колонку + липкая CTA, хаб действий 2×N), `world.tsx` (NPC-карточки 64px hit-target, прямой запуск боя по кнопке «В бой»), `battle.tsx` (HP-карточки в две колонки, лог 40-55 dvh, 2×2 действия), `npc-dialog.tsx` (full-screen sheet на мобильном, классический Dialog на ≥640px, явная кнопка X).
+- Торговля: `artifacts/api-server/src/game/shopCatalog.ts` (каталоги для `merchant_holvas`, `smith_durran`, `tavernkeep_maira`), эндпоинты `GET /api/npc/:id/shop` и `POST /api/npc/:id/shop/buy` в `routes/npc.ts`. Стэкуемые предметы автоматически объединяются в инвентаре, +2 репутации за покупку, событие `shop_purchase` в `worldEvents`.
+- NPC-диалог: вкладки «Разговор / Лавка» появляются автоматически для ролей `merchant`, `smith`, `tavern_keeper` (`isMerchantRole`).
+- `artifacts/api-server/src/game/npcFallback.ts`: шаблонный ответ NPC при недоступности Gemini — учитывает роль, тон, репутацию и ключевые слова сообщения, чтобы реплики не превращались в «молча смотрит».
 
 ## Переменные окружения (production)
 

@@ -135,3 +135,42 @@ export interface BestiaryEntry {
 }
 
 export const listBestiary = () => request<BestiaryEntry[]>("/bestiary");
+
+// --- Merchant / shop -------------------------------------------------------
+
+export interface ShopItemDTO {
+  catalogKey: string;
+  itemKey: string;
+  name: string;
+  itemType: "weapon" | "armor" | "trinket" | "potion" | "misc";
+  rarity: "common" | "uncommon" | "rare";
+  price: number;
+  description: string;
+  stats: Record<string, number>;
+  stackable: boolean;
+}
+
+export interface ShopDTO {
+  npcId: string;
+  npcName: string;
+  greeting: string;
+  items: ShopItemDTO[];
+  silver: number;
+}
+
+export const getNpcShop = (npcId: string) =>
+  request<ShopDTO>(`/npc/${encodeURIComponent(npcId)}/shop`);
+
+export interface BuyResultDTO {
+  ok: true;
+  purchased: { catalogKey: string; itemKey: string; name: string; price: number };
+  silverLeft: number;
+  reputation: number;
+  message: string;
+}
+
+export const buyFromNpc = (npcId: string, catalogKey: string) =>
+  request<BuyResultDTO>(`/npc/${encodeURIComponent(npcId)}/shop/buy`, {
+    method: "POST",
+    body: JSON.stringify({ catalogKey }),
+  });

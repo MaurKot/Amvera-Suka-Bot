@@ -150,8 +150,27 @@ export interface LocationData {
   description: string;
   type: string;
   isSafe: boolean;
+  /** Adjacency list — every edge is bidirectional, the seed wires both sides. */
+  connectedTo: string[];
+  /** Schematic minimap coordinates (≈ -1.0..1.0). Master AI may extend the graph. */
+  coordX: number;
+  coordY: number;
+  /** Frontier locations may be extended by the Master AI procedural generator. */
+  isFrontier?: boolean;
 }
 
+// World graph (radial layout around Ardvale Square as the start node):
+//
+//                broken_chapel (-0.6, +0.8)
+//                       │
+//                       │
+//   ash_woods ─── ardvale_square ─── salt_market
+//   (-1.0, 0)         (0, 0)           (+1.0, 0)
+//                       │                  │
+//                       │                  │
+//               moonwell_hollow ─── stonefang_pass
+//               (-0.5, -0.8)         (+0.7, -0.8)
+//
 export const LOCATIONS: LocationData[] = [
   {
     id: "ardvale_square",
@@ -161,6 +180,9 @@ export const LOCATIONS: LocationData[] = [
       "Центральная площадь старого города. Свет факелов дрожит на влажных камнях, и шёпот горожан затихает, когда мимо проходит чужак.",
     type: "city",
     isSafe: true,
+    connectedTo: ["broken_chapel", "ash_woods", "salt_market", "moonwell_hollow"],
+    coordX: 0,
+    coordY: 0,
   },
   {
     id: "broken_chapel",
@@ -170,6 +192,10 @@ export const LOCATIONS: LocationData[] = [
       "Полуразрушенный храм забытого божества. Витражи лежат осколками на алтаре, и кто-то всё ещё зажигает свечи в полночь.",
     type: "ruin",
     isSafe: false,
+    connectedTo: ["ardvale_square"],
+    coordX: -0.6,
+    coordY: 0.8,
+    isFrontier: true,
   },
   {
     id: "ash_woods",
@@ -179,6 +205,10 @@ export const LOCATIONS: LocationData[] = [
       "Деревья здесь обуглены до серебра, а земля помнит пожар, которого никто не видел. Между корнями шевелятся тени.",
     type: "wilderness",
     isSafe: false,
+    connectedTo: ["ardvale_square"],
+    coordX: -1.0,
+    coordY: 0,
+    isFrontier: true,
   },
   {
     id: "salt_market",
@@ -188,6 +218,9 @@ export const LOCATIONS: LocationData[] = [
       "Шум торговцев и резкий запах сушёной рыбы. Здесь продают всё — от пряностей до слухов, важно лишь, кто платит.",
     type: "market",
     isSafe: true,
+    connectedTo: ["ardvale_square", "stonefang_pass"],
+    coordX: 1.0,
+    coordY: 0,
   },
   {
     id: "moonwell_hollow",
@@ -197,6 +230,10 @@ export const LOCATIONS: LocationData[] = [
       "Долина, где встречаются обе луны. Колодец отражает не лица, а намерения. Сахваки приходят сюда исповедоваться теням.",
     type: "shrine",
     isSafe: false,
+    connectedTo: ["ardvale_square"],
+    coordX: -0.5,
+    coordY: -0.8,
+    isFrontier: true,
   },
   {
     id: "stonefang_pass",
@@ -206,6 +243,10 @@ export const LOCATIONS: LocationData[] = [
       "Узкий горный проход. Ветер несёт песнь высеченных в скале имён — каждого, кто здесь пал.",
     type: "mountain",
     isSafe: false,
+    connectedTo: ["salt_market"],
+    coordX: 0.7,
+    coordY: -0.8,
+    isFrontier: true,
   },
 ];
 

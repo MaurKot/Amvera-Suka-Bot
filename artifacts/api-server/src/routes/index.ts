@@ -8,10 +8,12 @@ import ledgerRouter from "./ledger";
 import inventoryRouter from "./inventory";
 import locationRouter from "./location";
 import questRouter from "./quest";
+import generatedQuestRouter from "./generatedQuest";
 import achievementRouter from "./achievement";
 import referralRouter from "./referral";
 import bestiaryRouter from "./bestiary";
 import realtimeRouter from "./realtime";
+import adminRouter from "./admin";
 
 const router: IRouter = Router();
 
@@ -24,9 +26,11 @@ router.use(ledgerRouter);
 router.use(inventoryRouter);
 router.use(locationRouter);
 router.use(questRouter);
+router.use(generatedQuestRouter);
 router.use(achievementRouter);
 router.use(referralRouter);
 router.use(bestiaryRouter);
 router.use(realtimeRouter);
+router.use(adminRouter);
 
 export default router;

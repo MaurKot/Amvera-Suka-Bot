@@ -6,6 +6,7 @@ import {
   achievements,
   bestiary,
 } from "@workspace/db";
+import { eq } from "drizzle-orm";
 import { LOCATIONS, ENEMIES } from "./lore";
 import type { Logger } from "pino";
 
@@ -149,11 +150,35 @@ export async function seedWorldIfEmpty(log: Logger): Promise<void> {
     type: l.type,
     isSafe: l.isSafe,
     isStarter: l.id === "ardvale_square",
+    connectedTo: l.connectedTo,
+    coordX: l.coordX,
+    coordY: l.coordY,
+    isFrontier: l.isFrontier ?? false,
+    isGenerated: false,
   }));
   if (newLocs.length > 0) {
     await db.insert(locations).values(newLocs);
-    // Mark starter location as already discovered (no first-discoverer bonus for the spawn point)
     log.info({ inserted: newLocs.length }, "World seed: locations inserted");
+  }
+
+  // Backfill graph metadata for installations that were seeded BEFORE the
+  // graph fields existed. Idempotent — only patches rows that still have
+  // empty `connected_to`.
+  for (const l of LOCATIONS) {
+    const [row] = await db.select().from(locations).where(eq(locations.id, l.id)).limit(1);
+    if (!row) continue;
+    const currentNeighbors = (row.connectedTo as string[] | null) ?? [];
+    if (currentNeighbors.length === 0 && l.connectedTo.length > 0) {
+      await db
+        .update(locations)
+        .set({
+          connectedTo: l.connectedTo,
+          coordX: l.coordX,
+          coordY: l.coordY,
+          isFrontier: l.isFrontier ?? false,
+        })
+        .where(eq(locations.id, l.id));
+    }
   }
 
   // Factions

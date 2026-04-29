@@ -1,5 +1,20 @@
 import { db, npcs } from "@workspace/db";
+import { eq } from "drizzle-orm";
 import type { Logger } from "pino";
+
+export interface QuestSeedTemplate {
+  /** Short title shown in the quest log */
+  title: string;
+  /** What the NPC asks the player to do (free-form, used by the AI quest generator) */
+  brief: string;
+  /** Suggested mechanical objective: talk | kill | gather | explore | deliver */
+  targetType: "talk" | "kill" | "gather" | "explore" | "deliver";
+  /** Default target reference (location id, npc id, enemy key) */
+  targetRef?: string;
+  targetCount?: number;
+  rewardSilverHint?: number;
+  rewardExpHint?: number;
+}
 
 interface NpcSeed {
   id: string;
@@ -13,6 +28,10 @@ interface NpcSeed {
   fullLore?: string;
   voiceStyle: string;
   knownFacts: string;
+  // P3 — extended NPC profile for AI quest generation
+  personality: string;
+  motives: string;
+  questPool: QuestSeedTemplate[];
 }
 
 export const NPC_SEED: NpcSeed[] = [
@@ -32,6 +51,26 @@ export const NPC_SEED: NpcSeed[] = [
       "медленная, размеренная речь старца; короткие фразы; иногда вставляет старые поговорки о пепле и пламени",
     knownFacts:
       "знает легенды Ардвейла, помнит имена погибших, в курсе всех тёмных слухов о Сломленной Часовне",
+    personality: "wise_patient",
+    motives: "сохранить память города и не дать пеплу поглотить новых жильцов",
+    questPool: [
+      {
+        title: "Свечи памяти",
+        brief: "Зажги свечи в Сломленной Часовне в память о тех, кого там оставили.",
+        targetType: "explore",
+        targetRef: "broken_chapel",
+        rewardSilverHint: 30,
+        rewardExpHint: 40,
+      },
+      {
+        title: "Расспроси писца",
+        brief: "Поговори с Велитом о новых записях в хрониках — вдруг он что-то скрывает.",
+        targetType: "talk",
+        targetRef: "scribe_velith",
+        rewardSilverHint: 20,
+        rewardExpHint: 30,
+      },
+    ],
   },
   {
     id: "watch_seraphine",
@@ -47,6 +86,27 @@ export const NPC_SEED: NpcSeed[] = [
       "лаконичная, прямая речь военного; не терпит пустословия; обращается на «ты» с прохладцей",
     knownFacts:
       "следит за всеми происшествиями в городе, знает кто из горожан замешан в преступлениях",
+    personality: "stern_dutybound",
+    motives: "удержать порядок в Ардвейле любой ценой и проверить каждого чужака",
+    questPool: [
+      {
+        title: "Зачистка перевала",
+        brief: "Уменьши число пепельных мародёров на перевале Каменного Клыка — стража отблагодарит.",
+        targetType: "kill",
+        targetRef: "ash_marauder",
+        targetCount: 2,
+        rewardSilverHint: 60,
+        rewardExpHint: 90,
+      },
+      {
+        title: "Проверка часовни",
+        brief: "Загляни в Сломленную Часовню и доложи, кто и когда там жжёт свечи.",
+        targetType: "explore",
+        targetRef: "broken_chapel",
+        rewardSilverHint: 25,
+        rewardExpHint: 40,
+      },
+    ],
   },
   {
     id: "merchant_holvas",
@@ -62,6 +122,27 @@ export const NPC_SEED: NpcSeed[] = [
       "дружелюбный, льстивый, но всегда сворачивает к торговле; вставляет фразы вроде «друг мой», «дорогой странник»",
     knownFacts:
       "знает цены на любой товар от Карата до Эха Пустоши, в курсе слухов из всех караванов",
+    personality: "greedy_charming",
+    motives: "наживать серебро, окружить себя должниками и стать главой каравана",
+    questPool: [
+      {
+        title: "Доставить узел",
+        brief: "Отнеси небольшой свёрток Маире на тот же рынок — никаких вопросов.",
+        targetType: "deliver",
+        targetRef: "tavernkeep_maira",
+        rewardSilverHint: 35,
+        rewardExpHint: 25,
+      },
+      {
+        title: "Сбор пряностей",
+        brief: "Принеси редкие травы из Пепельного Леса — оплачу втридорога.",
+        targetType: "gather",
+        targetRef: "ash_woods",
+        targetCount: 3,
+        rewardSilverHint: 80,
+        rewardExpHint: 60,
+      },
+    ],
   },
   {
     id: "priestess_yvelin",
@@ -78,6 +159,18 @@ export const NPC_SEED: NpcSeed[] = [
     voiceStyle: "тихая, почти певучая речь; цитирует обрывки молитв; редко смотрит в глаза",
     knownFacts:
       "знает забытые ритуалы, помнит имена ушедших богов, в курсе того, кто приходил в часовню по ночам",
+    personality: "fragile_devout",
+    motives: "вернуть голос богам и не дать часовне окончательно умереть",
+    questPool: [
+      {
+        title: "Молчаливая молитва",
+        brief: "Подойди к колодцу Лещ и попроси благословение богов от моего имени.",
+        targetType: "talk",
+        targetRef: "shade_oracle",
+        rewardSilverHint: 15,
+        rewardExpHint: 50,
+      },
+    ],
   },
   {
     id: "hunter_kaern",
@@ -92,6 +185,19 @@ export const NPC_SEED: NpcSeed[] = [
     voiceStyle: "немногословный, говорит образами природы; делает долгие паузы между фразами",
     knownFacts:
       "знает каждую тропу Пепельного Леса, следы любого зверя, и где прячутся пепельные волки",
+    personality: "gruff_loyal",
+    motives: "оберегать лес и не дать чужакам тревожить духов природы",
+    questPool: [
+      {
+        title: "След волка",
+        brief: "Уменьши число пепельных волков — слишком близко подходят к деревне.",
+        targetType: "kill",
+        targetRef: "ash_wolf",
+        targetCount: 2,
+        rewardSilverHint: 50,
+        rewardExpHint: 80,
+      },
+    ],
   },
   {
     id: "shade_oracle",
@@ -109,6 +215,18 @@ export const NPC_SEED: NpcSeed[] = [
       "загадочная, говорит вопросами и притчами; называет собеседника «странник» или «дитя пути»",
     knownFacts:
       "видит истинные намерения людей, знает пророчества о двух лунах, помнит сны жителей долины",
+    personality: "cryptic_neutral",
+    motives: "наблюдать за переплетением судеб и не дать миру свернуть с предначертанной тропы",
+    questPool: [
+      {
+        title: "Имя в воде",
+        brief: "Принеси мне отражение пути — пройди до Перевала Каменного Клыка и вернись.",
+        targetType: "explore",
+        targetRef: "stonefang_pass",
+        rewardSilverHint: 40,
+        rewardExpHint: 70,
+      },
+    ],
   },
   {
     id: "smith_durran",
@@ -123,6 +241,19 @@ export const NPC_SEED: NpcSeed[] = [
     voiceStyle: "грубоватый, краткий; смеётся низким раскатом; уважает только тех, кто умеет ждать",
     knownFacts:
       "знает каждый клинок, что был выкован на перевале; в курсе всех разбойников, что просят чинить оружие",
+    personality: "stoic_proud",
+    motives: "выковать оружие достойное камня и не дать перевалу пасть в руки мародёров",
+    questPool: [
+      {
+        title: "Молот и кровь",
+        brief: "Покажи перевалу, чего стоишь: уложи мародёра у входа.",
+        targetType: "kill",
+        targetRef: "ash_marauder",
+        targetCount: 1,
+        rewardSilverHint: 70,
+        rewardExpHint: 110,
+      },
+    ],
   },
   {
     id: "scribe_velith",
@@ -138,6 +269,18 @@ export const NPC_SEED: NpcSeed[] = [
       "сухая, книжная речь; любит вставлять цитаты из старых хроник; педантично уточняет имена и даты",
     knownFacts:
       "переписывает летописи Ардвейла, знает родословные знатных домов, в курсе кто и за чем приходил к Старейшине",
+    personality: "scholarly_curious",
+    motives: "записать каждый штрих истории, прежде чем кто-то перепишет её первым",
+    questPool: [
+      {
+        title: "Свидетельства",
+        brief: "Поговори с тремя разными лицами в городе и принеси мне их слова.",
+        targetType: "talk",
+        targetRef: "elder_rovan",
+        rewardSilverHint: 30,
+        rewardExpHint: 50,
+      },
+    ],
   },
   {
     id: "tavernkeep_maira",
@@ -153,6 +296,18 @@ export const NPC_SEED: NpcSeed[] = [
       "хрипловатая, дружелюбная; легко переходит с шутки на угрозу, если тронуть её людей",
     knownFacts:
       "слышит все слухи рынка, знает кто из наёмников ищет работу и кто прячется от стражи",
+    personality: "warm_iron",
+    motives: "защитить таверну и собрать долги, которые ей задолжал весь рынок",
+    questPool: [
+      {
+        title: "Тихий должник",
+        brief: "Найди должника на Рынке и аккуратно намекни — возвращать пора.",
+        targetType: "talk",
+        targetRef: "merchant_holvas",
+        rewardSilverHint: 40,
+        rewardExpHint: 35,
+      },
+    ],
   },
   {
     id: "ranger_silvar",
@@ -168,31 +323,72 @@ export const NPC_SEED: NpcSeed[] = [
       "сжатая, рублёная речь пустынника; говорит только по делу; на похвалу отвечает молчанием",
     knownFacts:
       "знает безопасные тропы через перевал, заметит любую засаду за полдня пути; видел разбойников Каменного Клыка вблизи",
+    personality: "silent_observant",
+    motives: "пройти каждый камень перевала и оставить за собой лишь знаки тех, кто здесь был",
+    questPool: [
+      {
+        title: "Метка тропы",
+        brief: "Отметь, как далеко ушли мародёры — сними одного дозорного.",
+        targetType: "kill",
+        targetRef: "ash_marauder",
+        targetCount: 1,
+        rewardSilverHint: 55,
+        rewardExpHint: 90,
+      },
+    ],
   },
 ];
 
 export async function seedNpcsIfEmpty(log: Logger): Promise<void> {
-  const existing = await db.select({ id: npcs.id }).from(npcs);
-  const existingIds = new Set(existing.map((e) => e.id));
-  const toInsert = NPC_SEED.filter((n) => !existingIds.has(n.id));
-  if (toInsert.length === 0) {
-    log.info({ have: existing.length }, "NPC seed: already populated");
-    return;
+  const existing = await db.select().from(npcs);
+  const existingMap = new Map(existing.map((e) => [e.id, e]));
+  const toInsert = NPC_SEED.filter((n) => !existingMap.has(n.id));
+  if (toInsert.length > 0) {
+    await db.insert(npcs).values(
+      toInsert.map((n) => ({
+        id: n.id,
+        name: n.name,
+        title: n.title ?? null,
+        tier: n.tier,
+        locationId: n.locationId,
+        faction: n.faction,
+        role: n.role,
+        shortProfile: n.shortProfile,
+        fullLore: n.fullLore ?? null,
+        voiceStyle: n.voiceStyle,
+        knownFacts: n.knownFacts,
+        personality: n.personality,
+        motives: n.motives,
+        questPoolJson: n.questPool,
+      })),
+    );
+    log.info({ inserted: toInsert.length }, "NPC seed: inserted");
   }
-  await db.insert(npcs).values(
-    toInsert.map((n) => ({
-      id: n.id,
-      name: n.name,
-      title: n.title ?? null,
-      tier: n.tier,
-      locationId: n.locationId,
-      faction: n.faction,
-      role: n.role,
-      shortProfile: n.shortProfile,
-      fullLore: n.fullLore ?? null,
-      voiceStyle: n.voiceStyle,
-      knownFacts: n.knownFacts,
-    })),
-  );
-  log.info({ inserted: toInsert.length, total: existing.length + toInsert.length }, "NPC seed: inserted");
+
+  // Backfill personality/motives/questPool for NPCs that existed before P3.
+  // Only patches rows where these fields are still default/empty — never
+  // overwrites edits made via the admin panel.
+  let patched = 0;
+  for (const seed of NPC_SEED) {
+    const cur = existingMap.get(seed.id);
+    if (!cur) continue;
+    const needsPatch =
+      cur.personality === "neutral" ||
+      !cur.motives ||
+      !Array.isArray(cur.questPoolJson) ||
+      (cur.questPoolJson as unknown[]).length === 0;
+    if (!needsPatch) continue;
+    await db
+      .update(npcs)
+      .set({
+        personality: seed.personality,
+        motives: seed.motives,
+        questPoolJson: seed.questPool,
+      })
+      .where(eq(npcs.id, seed.id));
+    patched++;
+  }
+  if (patched > 0) {
+    log.info({ patched }, "NPC seed: backfilled personality/motives/questPool");
+  }
 }

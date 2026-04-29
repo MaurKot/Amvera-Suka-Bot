@@ -1,24 +1,47 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { useGetCharacter, getGetCharacterQueryKey, getListNpcsQueryKey } from "@workspace/api-client-react";
+import {
+  useGetCharacter,
+  getGetCharacterQueryKey,
+  getListNpcsQueryKey,
+} from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
-import { Compass, Footprints, Lock, MapPin, Shield, Sparkles, Star } from "lucide-react";
+import {
+  Compass,
+  Footprints,
+  Lock,
+  MapPin,
+  Shield,
+  Sparkles,
+  Star,
+  Wand2,
+  AlertTriangle,
+} from "lucide-react";
 import {
   listLocations,
   visitLocation,
+  generateLocation,
   type LocationDTO,
   type VisitResult,
 } from "@/lib/api";
 import { useMainButton, haptic } from "@/lib/telegram";
 import { useRealtimeEvents } from "@/lib/realtime";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+
+// SVG viewport constants — locations use coordX/Y in 0..100 space.
+const SVG_W = 360;
+const SVG_H = 240;
+const PAD = 18;
+const project = (n: number, max: number) => PAD + (n / 100) * (max - PAD * 2);
 
 export function WorldMap() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const { data: characterData } = useGetCharacter();
   const character = characterData?.character;
 
@@ -32,9 +55,14 @@ export function WorldMap() {
     refetchInterval: 60_000,
   });
 
-  // Real-time refresh: any new discovery anywhere → refresh map.
   useRealtimeEvents((ev) => {
-    if (ev.type === "location_discovered" || ev.type === "character_entered" || ev.type === "character_left") {
+    if (
+      ev.type === "location_discovered" ||
+      ev.type === "character_entered" ||
+      ev.type === "character_left" ||
+      ev.type === "world_event_started" ||
+      ev.type === "world_event_ended"
+    ) {
       void refetch();
     }
   });
@@ -47,27 +75,52 @@ export function WorldMap() {
       queryClient.invalidateQueries({ queryKey: getGetCharacterQueryKey() });
       queryClient.invalidateQueries({ queryKey: ["locations"] });
       queryClient.invalidateQueries({ queryKey: ["achievements"] });
-      queryClient.invalidateQueries({ queryKey: getListNpcsQueryKey({ locationId: data.locationId }) });
+      queryClient.invalidateQueries({
+        queryKey: getListNpcsQueryKey({ locationId: data.locationId }),
+      });
       setSelected(null);
     },
-    onError: () => haptic("error"),
+    onError: (e: Error) => {
+      haptic("error");
+      toast({ title: "Не получилось", description: e.message, variant: "destructive" });
+    },
+  });
+
+  const expand = useMutation({
+    mutationFn: () => generateLocation(character!.locationId),
+    onSuccess: (res) => {
+      haptic("success");
+      toast({
+        title: `Открыто новое место — «${res.location.name}»`,
+        description: res.via === "ai" ? "Шёпот мира соткал новый путь" : "Старая тропа припомнила место",
+      });
+      void refetch();
+    },
+    onError: (e: Error) => {
+      haptic("error");
+      toast({ title: "Мир не пускает дальше", description: e.message, variant: "destructive" });
+    },
   });
 
   const selectedLoc = locations?.find((l) => l.id === selected);
-  const canVisit = !!selectedLoc && !selectedLoc.isCurrent && !character?.inBattle;
+  const canVisit =
+    !!selectedLoc && !selectedLoc.isCurrent && selectedLoc.isReachable && !character?.inBattle;
 
   useMainButton({
-    text: selectedLoc ? `Посетить «${selectedLoc.name}»` : "Выбери место на карте",
+    text: selectedLoc
+      ? selectedLoc.isReachable
+        ? `Посетить «${selectedLoc.name}»`
+        : "Слишком далеко — нет тропы"
+      : "Выбери место на карте",
     visible: !!selectedLoc,
     enabled: canVisit && !visit.isPending,
     onClick: () => selected && visit.mutate(selected),
   });
 
   useEffect(() => {
-    if (lastResult) {
-      const t = setTimeout(() => setLastResult(null), 6000);
-      return () => clearTimeout(t);
-    }
+    if (!lastResult) return undefined;
+    const t = setTimeout(() => setLastResult(null), 6000);
+    return () => clearTimeout(t);
   }, [lastResult]);
 
   if (!character) {
@@ -81,7 +134,7 @@ export function WorldMap() {
   }
 
   return (
-    <Layout title="Карта Альтеры" subtitle="Откой места — стань первопроходцем">
+    <Layout title="Карта Альтеры" subtitle="Тропы дальше — там, куда никто ещё не ходил">
       <AnimatePresence>
         {lastResult && (
           <motion.div
@@ -108,6 +161,39 @@ export function WorldMap() {
         )}
       </AnimatePresence>
 
+      {/* P2 — Mini-map (SVG graph) */}
+      <MiniMap
+        locations={locations ?? []}
+        selected={selected}
+        onSelect={(id) => {
+          haptic("selection");
+          setSelected((prev) => (prev === id ? null : id));
+        }}
+      />
+
+      {/* P2 — frontier explore button */}
+      <div className="mt-3 mb-3 flex items-center gap-2">
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={expand.isPending || !!character?.inBattle}
+          onClick={() => {
+            haptic("medium");
+            expand.mutate();
+          }}
+          className="border-primary/40 text-primary hover:bg-primary/10"
+          data-testid="btn-expand-world"
+        >
+          <Wand2 className="h-3.5 w-3.5 mr-1.5" />
+          {expand.isPending ? "Шёпот мира…" : "Шагнуть за горизонт"}
+        </Button>
+        <span className="text-[11px] text-muted-foreground italic">
+          Раздвинь карту — Master AI плетёт новые тропы
+        </span>
+      </div>
+
+      {/* Detail list */}
       <div className="grid gap-3">
         {(locations ?? []).map((loc) => (
           <LocationCard
@@ -125,6 +211,148 @@ export function WorldMap() {
   );
 }
 
+// ── Mini-map ──────────────────────────────────────────────────────────────
+function MiniMap({
+  locations,
+  selected,
+  onSelect,
+}: {
+  locations: LocationDTO[];
+  selected: string | null;
+  onSelect: (id: string) => void;
+}) {
+  const byId = useMemo(() => new Map(locations.map((l) => [l.id, l])), [locations]);
+
+  // Edges (deduped)
+  const edges = useMemo(() => {
+    const seen = new Set<string>();
+    const out: { a: LocationDTO; b: LocationDTO }[] = [];
+    for (const a of locations) {
+      for (const bid of a.connectedTo ?? []) {
+        const key = a.id < bid ? `${a.id}|${bid}` : `${bid}|${a.id}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const b = byId.get(bid);
+        if (b) out.push({ a, b });
+      }
+    }
+    return out;
+  }, [locations, byId]);
+
+  if (locations.length === 0) return null;
+
+  return (
+    <Card className="bg-card/60 border-border/40 backdrop-blur">
+      <CardContent className="p-2">
+        <svg
+          viewBox={`0 0 ${SVG_W} ${SVG_H}`}
+          className="w-full h-auto"
+          role="img"
+          aria-label="Карта Альтеры"
+          data-testid="mini-map"
+        >
+          {/* Faint grid */}
+          <defs>
+            <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="hsl(36 38% 92% / 0.04)" strokeWidth="1" />
+            </pattern>
+          </defs>
+          <rect width={SVG_W} height={SVG_H} fill="url(#grid)" />
+
+          {/* Edges */}
+          {edges.map(({ a, b }) => {
+            const x1 = project(a.coordX, SVG_W);
+            const y1 = project(a.coordY, SVG_H);
+            const x2 = project(b.coordX, SVG_W);
+            const y2 = project(b.coordY, SVG_H);
+            const isLive = a.isCurrent || b.isCurrent;
+            return (
+              <line
+                key={`${a.id}-${b.id}`}
+                x1={x1}
+                y1={y1}
+                x2={x2}
+                y2={y2}
+                stroke={isLive ? "hsl(43 70% 62% / 0.7)" : "hsl(36 38% 92% / 0.18)"}
+                strokeWidth={isLive ? 1.6 : 1}
+                strokeDasharray={a.isDiscovered && b.isDiscovered ? undefined : "3 3"}
+              />
+            );
+          })}
+
+          {/* Nodes */}
+          {locations.map((l) => {
+            const cx = project(l.coordX, SVG_W);
+            const cy = project(l.coordY, SVG_H);
+            const isSel = selected === l.id;
+            const fill = l.isCurrent
+              ? "hsl(43 70% 62%)"
+              : l.isDiscovered
+              ? "hsl(36 38% 92%)"
+              : "hsl(240 5% 35%)";
+            const eventCount = l.activeEvents?.length ?? 0;
+            return (
+              <g
+                key={l.id}
+                onClick={() => onSelect(l.id)}
+                className="cursor-pointer"
+                data-testid={`map-node-${l.id}`}
+              >
+                {l.isCurrent && (
+                  <circle cx={cx} cy={cy} r={11} fill="hsl(43 70% 62% / 0.18)">
+                    <animate attributeName="r" values="9;13;9" dur="2.4s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.25;0.05;0.25" dur="2.4s" repeatCount="indefinite" />
+                  </circle>
+                )}
+                {isSel && (
+                  <circle cx={cx} cy={cy} r={10} fill="none" stroke="hsl(290 60% 70%)" strokeWidth={1.4} />
+                )}
+                <circle cx={cx} cy={cy} r={5.2} fill={fill} stroke="hsl(240 12% 5%)" strokeWidth={1.2} />
+                {eventCount > 0 && (
+                  <circle cx={cx + 5} cy={cy - 5} r={2.6} fill="hsl(0 75% 56%)" stroke="hsl(240 12% 5%)" strokeWidth={1} />
+                )}
+                {l.isReachable && !l.isCurrent && (
+                  <circle cx={cx} cy={cy} r={7} fill="none" stroke="hsl(43 70% 62% / 0.5)" strokeWidth={1} strokeDasharray="2 2" />
+                )}
+                <text
+                  x={cx}
+                  y={cy + 14}
+                  textAnchor="middle"
+                  fontSize="8"
+                  fill={l.isDiscovered ? "hsl(36 38% 92%)" : "hsl(240 8% 60%)"}
+                  fontFamily="Plus Jakarta Sans, sans-serif"
+                  fontWeight={l.isCurrent ? 700 : 500}
+                  style={{ paintOrder: "stroke", stroke: "hsl(240 12% 5%)", strokeWidth: 2.5 }}
+                >
+                  {l.isDiscovered ? l.name : "???"}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+        <div className="px-2 pt-1 pb-1.5 flex items-center gap-3 text-[10px] text-muted-foreground uppercase tracking-wider">
+          <Legend color="hsl(43 70% 62%)" label="Здесь" />
+          <Legend color="hsl(36 38% 92%)" label="Открыто" />
+          <Legend color="hsl(240 5% 35%)" label="Скрыто" />
+          <Legend color="hsl(0 75% 56%)" label="Событие" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function Legend({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1">
+      <svg width="8" height="8" viewBox="0 0 8 8">
+        <circle cx="4" cy="4" r="3" fill={color} />
+      </svg>
+      {label}
+    </span>
+  );
+}
+
+// ── Detail card ───────────────────────────────────────────────────────────
 function LocationCard({
   loc,
   isSelected,
@@ -171,23 +399,51 @@ function LocationCard({
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-serif text-base text-foreground truncate">{loc.name}</h3>
               {loc.isCurrent && (
-                <Badge variant="outline" className="border-primary/40 text-primary text-[10px] uppercase">
+                <Badge variant="outline" className="border-primary/40 text-primary text-[10px] uppercase no-shadow">
                   Здесь
                 </Badge>
               )}
+              {loc.isReachable && !loc.isCurrent && (
+                <Badge variant="outline" className="border-primary/30 text-primary/90 text-[10px] uppercase no-shadow flex items-center gap-1">
+                  <Footprints className="h-3 w-3" /> 1 шаг
+                </Badge>
+              )}
               {loc.isSafe && (
-                <Badge variant="outline" className="border-secondary/40 text-secondary-foreground text-[10px] uppercase flex items-center gap-1">
+                <Badge variant="outline" className="border-secondary/40 text-secondary-foreground text-[10px] uppercase no-shadow flex items-center gap-1">
                   <Shield className="h-3 w-3" /> Тих
                 </Badge>
               )}
+              {loc.isGenerated && (
+                <Badge variant="outline" className="border-secondary/40 text-secondary-foreground text-[10px] uppercase no-shadow flex items-center gap-1">
+                  <Wand2 className="h-3 w-3" /> Новь
+                </Badge>
+              )}
               {loc.buffActive && (
-                <Badge variant="outline" className="border-primary/40 text-primary text-[10px] uppercase flex items-center gap-1">
+                <Badge variant="outline" className="border-primary/40 text-primary text-[10px] uppercase no-shadow flex items-center gap-1">
                   <Star className="h-3 w-3" /> Бафф
                 </Badge>
               )}
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">{loc.region}</p>
-            <p className="text-sm text-foreground/80 mt-2 leading-snug line-clamp-3">{loc.description}</p>
+            <p className="text-sm text-foreground/90 mt-2 leading-snug line-clamp-3">{loc.description}</p>
+
+            {(loc.activeEvents?.length ?? 0) > 0 && (
+              <div className="mt-2 space-y-1">
+                {loc.activeEvents.map((ev, i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      "flex items-center gap-1.5 text-[11px] uppercase tracking-wider",
+                      ev.severity >= 3 ? "event-sev-3" : ev.severity === 2 ? "event-sev-2" : "event-sev-1",
+                    )}
+                  >
+                    <AlertTriangle className="h-3 w-3" />
+                    <span className="truncate">{ev.title}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="mt-2 text-[11px] flex items-center gap-2 text-muted-foreground">
               {loc.isDiscovered ? (
                 <>
@@ -207,10 +463,11 @@ function LocationCard({
               <Button
                 size="sm"
                 className="mt-3 w-full"
+                disabled={!loc.isReachable}
                 onClick={(e) => {
                   e.stopPropagation();
-                  // Hardware Back / no-Telegram fallback
-                  const btn = (e.currentTarget as HTMLButtonElement);
+                  if (!loc.isReachable) return;
+                  const btn = e.currentTarget as HTMLButtonElement;
                   btn.disabled = true;
                   visitLocation(loc.id)
                     .then(() => window.location.reload())
@@ -219,7 +476,7 @@ function LocationCard({
                     });
                 }}
               >
-                Посетить
+                {loc.isReachable ? "Посетить" : "Нет тропы отсюда"}
               </Button>
             )}
           </div>

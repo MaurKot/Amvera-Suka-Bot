@@ -93,6 +93,36 @@
 - `PORT` — порт HTTP (по умолчанию `8080`).
 - `NODE_ENV=production` — включает раздачу статики из `./public`.
 
+## Большой аудит (апрель 2026) — P1..P6
+
+Подробности в `IMPLEMENTATION.md`. Кратко:
+
+- **P1 — читаемость**: повышены `--foreground`/`--muted-foreground`/`--primary`,
+  `body` теперь `font-weight:500`, заголовки 600; CSS-переменные и базовые
+  правила тёмных текст-теней (`--text-shadow-fantasy*`, `.text-fantasy-strong`,
+  `.no-shadow`, `.event-sev-1/2/3`).
+- **P2 — граф локаций + процедурка**: `locations` обзавелась `connectedTo`,
+  `coordX/Y`, `isFrontier`, `isGenerated`, `generatedAt`; `visitLocation`
+  проверяет смежность; `POST /api/locations/generate` (Gemini + fallback).
+  В клиенте — SVG-миникарта и кнопка «Шагнуть за горизонт».
+- **P3 — NPC + AI-квесты**: `npcs` получили `personality`, `motives`,
+  `questPoolJson`; новые таблицы `npc_memory` и `generated_quests`;
+  `POST /api/npc/:npcId/quest/generate` и `POST /api/quests/generated/:id/status`;
+  в `NpcDialog` — кнопка «Спросить про дело» с превью награды и Берусь/Откажусь.
+- **P4 — Master AI**: `worldDirector.ts` запускает «дирижёра» каждые 6 часов
+  (`WORLD_CYCLE_INTERVAL_MS`), с лимитом 1 локация + 1 событие за цикл; всё
+  пишется в `ai_cycles` (статус, заметки, ошибки) и не валит сервер при сбое.
+- **P5 — админка `/admin`**: `ADMIN_TOKEN` (≥8 симв), middleware с
+  constant-time проверкой и аудит-логом (только последние 6 символов токена);
+  7 разделов на фронте — Свод/NPC/Места/События/Циклы AI/Игроки/Журнал; токен
+  хранится только в `sessionStorage`.
+- **P6 — динамические события**: `active_world_events` отображаются в
+  `LocationDTO.activeEvents`, на миникарте красной точкой и баннером в
+  `Layout` для текущей локации игрока (цвет по `severity`).
+
+Новые env-vars: `ADMIN_TOKEN` (обязателен для `/admin`),
+`WORLD_CYCLE_ENABLED`, `WORLD_CYCLE_INTERVAL_MS`.
+
 ## Деплой на Amvera Cloud
 
 - `Dockerfile` — multi-stage: builder (pnpm install + vite build + esbuild) → runtime (node:22-alpine + `dist` + `public`).

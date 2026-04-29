@@ -2,6 +2,8 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { seedNpcsIfEmpty } from "./game/npcSeed";
 import { seedWorldIfEmpty } from "./game/worldSeed";
+import { runStartupMigrations } from "./lib/migrations";
+import { startWorldDirectorScheduler } from "./game/worldDirector";
 
 const rawPort = process.env["PORT"];
 
@@ -18,6 +20,14 @@ if (Number.isNaN(port) || port <= 0) {
 }
 
 async function start(): Promise<void> {
+  // Run idempotent schema migrations BEFORE seeders, since seeders rely on
+  // the new columns/tables (personality, motives, location graph, etc).
+  try {
+    await runStartupMigrations(logger);
+  } catch (err) {
+    logger.error({ err }, "Startup migrations failed — continuing, but state may be inconsistent");
+  }
+
   try {
     await seedWorldIfEmpty(logger);
   } catch (err) {
@@ -27,6 +37,17 @@ async function start(): Promise<void> {
     await seedNpcsIfEmpty(logger);
   } catch (err) {
     logger.error({ err }, "Failed to seed NPCs");
+  }
+
+  // P4 — Master AI cycle. Disabled if WORLD_CYCLE_ENABLED=false.
+  if (process.env["WORLD_CYCLE_ENABLED"] !== "false") {
+    try {
+      startWorldDirectorScheduler(logger);
+    } catch (err) {
+      logger.error({ err }, "Failed to start world director scheduler");
+    }
+  } else {
+    logger.info("World director scheduler disabled via WORLD_CYCLE_ENABLED=false");
   }
 
   app.listen(port, (err) => {

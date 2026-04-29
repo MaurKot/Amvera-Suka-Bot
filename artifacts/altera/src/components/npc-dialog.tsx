@@ -32,7 +32,16 @@ import {
 } from "lucide-react";
 import { haptic } from "@/lib/telegram";
 import { cn } from "@/lib/utils";
-import { buyFromNpc, getNpcShop, type ShopItemDTO } from "@/lib/api";
+import {
+  buyFromNpc,
+  getNpcShop,
+  generateQuestFromNpc,
+  updateGeneratedQuestStatus,
+  type GeneratedQuestDTO,
+  type ShopItemDTO,
+} from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { ScrollText } from "lucide-react";
 
 const TONES: { key: string; label: string; icon: React.ComponentType<{ className?: string }>; tone: string }[] = [
   { key: "friendly", label: "Дружелюбно", icon: Heart, tone: "friendly" },
@@ -54,10 +63,44 @@ type Tab = "talk" | "shop";
 
 export function NpcDialog({ npcId, open, onClose }: NpcDialogProps) {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [tone, setTone] = useState("neutral");
   const [text, setText] = useState("");
   const [tab, setTab] = useState<Tab>("talk");
+  const [pendingQuest, setPendingQuest] = useState<GeneratedQuestDTO | null>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
+
+  // P3 — "Спросить про дело" — ask the NPC for an AI-generated quest.
+  const askQuest = useMutation({
+    mutationFn: () => generateQuestFromNpc(npcId!),
+    onSuccess: (q) => {
+      haptic("success");
+      setPendingQuest(q);
+    },
+    onError: (e: Error) => {
+      haptic("error");
+      toast({ title: "Дело не нашлось", description: e.message, variant: "destructive" });
+    },
+  });
+
+  const acceptQuest = useMutation({
+    mutationFn: (id: number) => updateGeneratedQuestStatus(id, "accepted"),
+    onSuccess: () => {
+      haptic("success");
+      toast({ title: "Дело принято", description: "Загляни во вкладку «Дела»." });
+      setPendingQuest(null);
+      queryClient.invalidateQueries({ queryKey: ["generated-quests"] });
+    },
+    onError: (e: Error) => toast({ title: "Не получилось", description: e.message, variant: "destructive" }),
+  });
+
+  const declineQuest = useMutation({
+    mutationFn: (id: number) => updateGeneratedQuestStatus(id, "declined"),
+    onSuccess: () => {
+      setPendingQuest(null);
+      queryClient.invalidateQueries({ queryKey: ["generated-quests"] });
+    },
+  });
 
   const { data: npc } = useGetNpc(npcId ?? "", { query: { enabled: !!npcId && open } });
   const { data: history } = useGetDialogue(npcId ?? "", {
@@ -71,6 +114,7 @@ export function NpcDialog({ npcId, open, onClose }: NpcDialogProps) {
   useEffect(() => {
     setTab("talk");
     setText("");
+    setPendingQuest(null);
   }, [npcId]);
 
   useEffect(() => {
@@ -209,7 +253,68 @@ export function NpcDialog({ npcId, open, onClose }: NpcDialogProps) {
               )}
             </div>
 
+            {/* P3 — pending quest preview */}
+            {pendingQuest && (
+              <div className="border-t border-primary/30 bg-primary/5 px-4 py-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <ScrollText className="h-4 w-4 text-primary" />
+                  <h4 className="font-serif text-sm text-primary text-fantasy-strong">{pendingQuest.title}</h4>
+                </div>
+                <p className="text-xs text-foreground/90 leading-relaxed">{pendingQuest.description}</p>
+                <p className="text-[11px] text-muted-foreground italic">{pendingQuest.objective}</p>
+                <div className="flex items-center gap-2 text-[11px] font-mono">
+                  <span className="text-primary">{pendingQuest.rewardSilver}⌬</span>
+                  <span className="text-secondary-foreground">+{pendingQuest.rewardExp} оп.</span>
+                  {pendingQuest.rewardRepDelta !== 0 && (
+                    <span className={pendingQuest.rewardRepDelta > 0 ? "text-primary/80" : "text-destructive/80"}>
+                      {pendingQuest.rewardRepDelta > 0 ? "+" : ""}
+                      {pendingQuest.rewardRepDelta} реп.
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    className="flex-1 h-9"
+                    disabled={acceptQuest.isPending}
+                    onClick={() => acceptQuest.mutate(pendingQuest.id)}
+                    data-testid="quest-accept"
+                  >
+                    Берусь
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 h-9"
+                    disabled={declineQuest.isPending}
+                    onClick={() => declineQuest.mutate(pendingQuest.id)}
+                    data-testid="quest-decline"
+                  >
+                    Откажусь
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <div className="border-t border-border/50 p-3 flex-shrink-0 space-y-2 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
+              {/* P3 — quick "ask about a job" button */}
+              {!pendingQuest && npcId && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full h-9 border-primary/30 text-primary hover:bg-primary/10"
+                  disabled={askQuest.isPending}
+                  onClick={() => {
+                    haptic("medium");
+                    askQuest.mutate();
+                  }}
+                  data-testid="ask-quest"
+                >
+                  <ScrollText className="h-3.5 w-3.5 mr-1.5" />
+                  {askQuest.isPending ? "Думает над поручением…" : "Спросить про дело"}
+                </Button>
+              )}
               <div className="flex gap-1.5 overflow-x-auto no-scrollbar -mx-1 px-1">
                 {TONES.map((t) => {
                   const Icon = t.icon;

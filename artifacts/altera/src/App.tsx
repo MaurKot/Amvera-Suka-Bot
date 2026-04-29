@@ -15,6 +15,7 @@ import { WorldMap } from "@/pages/map";
 import { Quests } from "@/pages/quests";
 import { Achievements } from "@/pages/achievements";
 import { ReferralPage } from "@/pages/referral";
+import { Admin } from "@/pages/admin";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -35,6 +36,7 @@ function Router() {
       <Route path="/quests" component={Quests} />
       <Route path="/achievements" component={Achievements} />
       <Route path="/referral" component={ReferralPage} />
+      <Route path="/admin" component={Admin} />
       <Route path="/npc/:npcId" component={NpcProfile} />
       <Route path="/battle" component={BattleScreen} />
       <Route path="/ledger" component={Ledger} />

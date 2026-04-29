@@ -22,9 +22,19 @@ export interface VisitResult {
 
 /**
  * Move character to a new location.
+ * - Enforces graph connectivity: target must be in current location's `connectedTo`.
  * - Creates discovery record + first-discoverer achievement (with expiring buff) if no one has been there yet.
  * - Emits world+location realtime events for cross-player sync.
+ *
+ * Returns null on missing location/character. Throws `Error("not_connected")`
+ * if the target is not adjacent to the current location — caller maps to 400.
  */
+export class LocationNotConnectedError extends Error {
+  constructor(public from: string, public to: string) {
+    super(`Location ${to} is not reachable from ${from}`);
+  }
+}
+
 export async function visitLocation(
   characterId: number,
   locationId: string,
@@ -37,6 +47,19 @@ export async function visitLocation(
   if (!c) return null;
 
   const previousLocationId = c.locationId;
+
+  // Enforce graph connectivity (P2). Same-location is always allowed.
+  if (previousLocationId !== locationId) {
+    const [prev] = await db
+      .select()
+      .from(locations)
+      .where(eq(locations.id, previousLocationId))
+      .limit(1);
+    const neighbors = (prev?.connectedTo as string[] | null) ?? [];
+    if (!neighbors.includes(locationId)) {
+      throw new LocationNotConnectedError(previousLocationId, locationId);
+    }
+  }
 
   await db
     .update(characters)

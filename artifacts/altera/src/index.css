@@ -48,34 +48,40 @@
 :root {
   /* Dark fantasy default (treat light mode as dark) */
   --background: 240 10% 4%; /* Obsidian */
-  --foreground: 36 33% 85%; /* Parchment cream */
-  
-  --border: 240 5% 15%;
-  --input: 240 5% 15%;
-  --ring: 43 44% 50%; /* Tarnished gold */
+  --foreground: 36 38% 92%; /* Brighter parchment — WCAG AA on obsidian */
 
-  --card: 240 8% 6%;
-  --card-foreground: 36 33% 85%;
-  --card-border: 240 5% 12%;
+  --border: 240 5% 18%;
+  --input: 240 5% 18%;
+  --ring: 43 70% 62%; /* Brighter tarnished gold for focus rings */
+
+  --card: 240 8% 7%;
+  --card-foreground: 36 38% 92%;
+  --card-border: 240 5% 14%;
 
   --popover: 240 10% 4%;
-  --popover-foreground: 36 33% 85%;
-  --popover-border: 240 5% 15%;
+  --popover-foreground: 36 38% 92%;
+  --popover-border: 240 5% 18%;
 
-  --primary: 43 44% 50%; /* Tarnished gold */
-  --primary-foreground: 240 10% 4%;
-  
-  --secondary: 290 42% 14%; /* Bruised violet */
-  --secondary-foreground: 36 33% 85%;
+  --primary: 43 70% 62%; /* Brighter tarnished gold — readable on dark */
+  --primary-foreground: 240 12% 5%;
 
-  --muted: 240 5% 10%;
-  --muted-foreground: 240 5% 65%;
+  --secondary: 290 42% 22%; /* Lifted bruised violet */
+  --secondary-foreground: 36 38% 92%;
 
-  --accent: 290 42% 14%;
-  --accent-foreground: 36 33% 85%;
+  --muted: 240 5% 12%;
+  --muted-foreground: 240 8% 78%; /* Was 65% — WCAG AA */
 
-  --destructive: 0 60% 34%; /* Ember red */
-  --destructive-foreground: 36 33% 85%;
+  --accent: 290 42% 22%;
+  --accent-foreground: 36 38% 92%;
+
+  --destructive: 0 75% 56%; /* Brighter ember red — readable */
+  --destructive-foreground: 36 38% 96%;
+
+  /* P1 — Readability tokens. All text shadows are *dark* shadows for
+     legibility against translucent or noisy backgrounds. */
+  --text-shadow-fantasy: 0 1px 2px rgba(0, 0, 0, 0.85), 0 0 1px rgba(0, 0, 0, 0.6);
+  --text-shadow-fantasy-strong: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 2px rgba(0, 0, 0, 0.85);
+  --text-shadow-glow-gold: 0 0 8px hsl(43 70% 62% / 0.45), 0 1px 2px rgba(0, 0, 0, 0.85);
 
   --radius: 0.125rem; /* Sharp edges */
 
@@ -98,26 +104,26 @@
 .dark {
   /* Same as root, it's always dark */
   --background: 240 10% 4%;
-  --foreground: 36 33% 85%;
-  --border: 240 5% 15%;
-  --input: 240 5% 15%;
-  --ring: 43 44% 50%;
-  --card: 240 8% 6%;
-  --card-foreground: 36 33% 85%;
-  --card-border: 240 5% 12%;
+  --foreground: 36 38% 92%;
+  --border: 240 5% 18%;
+  --input: 240 5% 18%;
+  --ring: 43 70% 62%;
+  --card: 240 8% 7%;
+  --card-foreground: 36 38% 92%;
+  --card-border: 240 5% 14%;
   --popover: 240 10% 4%;
-  --popover-foreground: 36 33% 85%;
-  --popover-border: 240 5% 15%;
-  --primary: 43 44% 50%;
-  --primary-foreground: 240 10% 4%;
-  --secondary: 290 42% 14%;
-  --secondary-foreground: 36 33% 85%;
-  --muted: 240 5% 10%;
-  --muted-foreground: 240 5% 65%;
-  --accent: 290 42% 14%;
-  --accent-foreground: 36 33% 85%;
-  --destructive: 0 60% 34%;
-  --destructive-foreground: 36 33% 85%;
+  --popover-foreground: 36 38% 92%;
+  --popover-border: 240 5% 18%;
+  --primary: 43 70% 62%;
+  --primary-foreground: 240 12% 5%;
+  --secondary: 290 42% 22%;
+  --secondary-foreground: 36 38% 92%;
+  --muted: 240 5% 12%;
+  --muted-foreground: 240 8% 78%;
+  --accent: 290 42% 22%;
+  --accent-foreground: 36 38% 92%;
+  --destructive: 0 75% 56%;
+  --destructive-foreground: 36 38% 96%;
 }
 
 @layer base {
@@ -127,12 +133,27 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    /* P1 — minimum legible weight for body copy */
+    font-weight: 500;
     /* subtle noise texture */
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
   }
 
+  /* P1 — Body copy + small UI text get a soft dark shadow so they stay
+     readable over the noise texture and translucent cards. */
+  p, span, li, td, th, label, button, input, textarea, select, a {
+    text-shadow: var(--text-shadow-fantasy);
+  }
+
   h1, h2, h3, h4, h5, h6 {
     @apply font-serif tracking-wide;
+    font-weight: 600;
+    text-shadow: var(--text-shadow-fantasy-strong);
+  }
+
+  /* Larger headings get a faint gold glow */
+  h1, h2 {
+    text-shadow: var(--text-shadow-glow-gold);
   }
 
   html, body, #root {
@@ -167,4 +188,16 @@
 @layer utilities {
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* P1 — escape hatches. Use `.no-shadow` on chips/badges where the
+     soft shadow looks muddy. Use `.text-fantasy-strong` for callouts
+     that need extra contrast. */
+  .no-shadow { text-shadow: none !important; }
+  .text-fantasy-strong { text-shadow: var(--text-shadow-fantasy-strong); }
+  .text-fantasy-glow { text-shadow: var(--text-shadow-glow-gold); }
+
+  /* P6 — world event severity colour ramp */
+  .event-sev-1 { color: hsl(43 70% 70%); }   /* mild */
+  .event-sev-2 { color: hsl(28 80% 65%); }   /* notable */
+  .event-sev-3 { color: hsl(0 75% 65%); }    /* dire */
 }

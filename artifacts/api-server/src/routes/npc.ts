@@ -3,6 +3,7 @@ import { SendDialogueBody, GiftNpcBody } from "@workspace/api-zod";
 import { db, npcDialogues, characters, worldEvents } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { ai } from "../lib/gemini";
+import { publishEvent } from "../lib/realtime";
 import { getCurrentCharacter } from "../game/characterService";
 import {
   adjustReputation,
@@ -18,6 +19,8 @@ import { buildSystemPrompt } from "../game/promptBuilder";
 import { getRace, getCharClass } from "../game/lore";
 import { getRepLevel, toneToInfluence } from "../game/reputation";
 import { getEventConfig } from "../game/events";
+import { buildContextAnchor, renderAnchorForPrompt } from "../game/anchor";
+import { NpcReplySchema, validateNarrative } from "../game/validator";
 
 const router: IRouter = Router();
 
@@ -112,7 +115,11 @@ router.post("/npc/:npcId/dialogue", async (req: Request, res: Response) => {
   const race = getRace(c.race);
   const cls = getCharClass(c.charClass);
 
-  const prompt = buildSystemPrompt({
+  // L2 — Context anchor: tell Gemini what places/NPCs/items it is allowed to reference.
+  const anchor = await buildContextAnchor(c.id);
+  const anchorBlock = renderAnchorForPrompt(anchor);
+
+  const basePrompt = buildSystemPrompt({
     npc,
     characterName: c.name,
     characterRace: race?.nameRu ?? c.race,
@@ -123,8 +130,10 @@ router.post("/npc/:npcId/dialogue", async (req: Request, res: Response) => {
     playerMessage: parsed.data.content,
     history: history.map((h) => ({ role: h.role, content: h.content })),
   });
+  const prompt = `${anchorBlock}\n\n${basePrompt}`;
 
   let npcReply = "";
+  let validationProblems: string[] = [];
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
@@ -138,8 +147,22 @@ router.post("/npc/:npcId/dialogue", async (req: Request, res: Response) => {
     if (!npcReply) {
       npcReply = `${npc.name} молчит, разглядывая тебя.`;
     }
-    // strip leading prefixes like "Ты:" if model leaks them
     npcReply = npcReply.replace(/^(?:Ты|Я|NPC|"[^"]*"\s*:)\s*[:\-—]\s*/i, "").trim();
+
+    // L1 — Schema validation
+    const shapeCheck = NpcReplySchema.safeParse({ reply: npcReply });
+    if (!shapeCheck.success) {
+      req.log.warn({ npcReply }, "L1 schema rejected, using fallback");
+      npcReply = `${npc.name} обрывает фразу на полуслове.`;
+    }
+
+    // L3 — Forbidden-fact validator
+    const validation = validateNarrative(npcReply, anchor);
+    validationProblems = validation.problems;
+    if (!validation.ok) {
+      req.log.warn({ problems: validation.problems, original: npcReply }, "L3 cleaned narrative");
+      npcReply = validation.cleaned;
+    }
   } catch (err) {
     req.log.error({ err }, "Gemini dialogue call failed");
     npcReply = `${npc.name} устало смотрит на тебя и не находит слов.`;
@@ -168,7 +191,34 @@ router.post("/npc/:npcId/dialogue", async (req: Request, res: Response) => {
       isPublic: cfg.public,
       description: `${cfg.defaultDescription} (${npc.name})`,
     });
+
+    if (cfg.public) {
+      await publishEvent({
+        channel: "world",
+        type: "narrative_flag",
+        scope: c.locationId,
+        payload: {
+          flag: influence.flag,
+          actorName: c.name,
+          npcName: npc.name,
+          locationId: c.locationId,
+        },
+      });
+    }
   }
+
+  await publishEvent({
+    channel: "location",
+    type: "npc_dialogue",
+    scope: c.locationId,
+    payload: {
+      characterId: c.id,
+      characterName: c.name,
+      npcId,
+      npcName: npc.name,
+      locationId: c.locationId,
+    },
+  });
 
   res.json({
     npcReply,
@@ -176,6 +226,7 @@ router.post("/npc/:npcId/dialogue", async (req: Request, res: Response) => {
     newReputation: newRep,
     repName: getRepLevel(newRep).nameRu,
     eventTriggered,
+    validationProblems,
   });
 });
 

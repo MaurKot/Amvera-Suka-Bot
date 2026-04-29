@@ -5,7 +5,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { Skull, Scroll, Heart, Zap, Sparkles } from "lucide-react";
+import { Skull, Scroll, Heart, Zap, Sparkles, Map, Trophy, Gift, ScrollText } from "lucide-react";
 
 import { 
   useGetCharacter, 
@@ -285,9 +285,24 @@ export function Home() {
                     {lore.locations.find(l => l.id === character.locationId)?.description}
                   </p>
                   
-                  <div className="pt-6">
+                  <div className="pt-6 grid grid-cols-2 gap-2">
                     <Button onClick={() => navigate("/world")} className="font-serif tracking-widest bg-white/5 border border-white/10 hover:bg-primary/20 hover:border-primary/50 text-foreground transition-all">
-                      Осмотреться вокруг
+                      Осмотреться
+                    </Button>
+                    <Button onClick={() => navigate("/map")} variant="outline" className="font-serif tracking-widest" data-testid="home-map">
+                      <Map className="w-4 h-4 mr-2" /> Карта
+                    </Button>
+                    <Button onClick={() => navigate("/quests")} variant="outline" className="font-serif tracking-widest" data-testid="home-quests">
+                      <Scroll className="w-4 h-4 mr-2" /> Дела
+                    </Button>
+                    <Button onClick={() => navigate("/achievements")} variant="outline" className="font-serif tracking-widest" data-testid="home-achievements">
+                      <Trophy className="w-4 h-4 mr-2" /> Награды
+                    </Button>
+                    <Button onClick={() => navigate("/referral")} variant="outline" className="font-serif tracking-widest" data-testid="home-referral">
+                      <Gift className="w-4 h-4 mr-2" /> Друзья
+                    </Button>
+                    <Button onClick={() => navigate("/ledger")} variant="outline" className="font-serif tracking-widest" data-testid="home-ledger">
+                      <ScrollText className="w-4 h-4 mr-2" /> Хроника
                     </Button>
                   </div>
                 </div>

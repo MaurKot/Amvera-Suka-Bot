@@ -11,8 +11,19 @@ import { BattleScreen } from "@/pages/battle";
 import { Ledger } from "@/pages/ledger";
 import { Inventory } from "@/pages/inventory";
 import { Lore } from "@/pages/lore";
+import { WorldMap } from "@/pages/map";
+import { Quests } from "@/pages/quests";
+import { Achievements } from "@/pages/achievements";
+import { ReferralPage } from "@/pages/referral";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      staleTime: 15_000,
+    },
+  },
+});
 
 function Router() {
   return (
@@ -20,6 +31,10 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/character" component={CharacterSheet} />
       <Route path="/world" component={World} />
+      <Route path="/map" component={WorldMap} />
+      <Route path="/quests" component={Quests} />
+      <Route path="/achievements" component={Achievements} />
+      <Route path="/referral" component={ReferralPage} />
       <Route path="/npc/:npcId" component={NpcProfile} />
       <Route path="/battle" component={BattleScreen} />
       <Route path="/ledger" component={Ledger} />

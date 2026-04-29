@@ -134,4 +134,18 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-serif tracking-wide;
   }
+
+  html, body, #root {
+    height: 100%;
+  }
+
+  /* Allow Telegram WebApp theme to override our dark background when present */
+  body {
+    background-color: var(--tg-bg, hsl(var(--background)));
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }

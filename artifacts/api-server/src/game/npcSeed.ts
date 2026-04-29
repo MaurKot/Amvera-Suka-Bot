@@ -27,7 +27,7 @@ export const NPC_SEED: NpcSeed[] = [
     shortProfile:
       "Седой человек в сером плаще. Каждый вечер зажигает свечи на площади и помнит имена всех, кто умер в Ардвейле.",
     fullLore:
-      "Рован пережил три зимы пепла. Он знает каждую трещину в камнях площади и каждого, кто шептал угрозы городу. Не любит чужаков, но честен с теми, кто чтит память.",
+      "Рован пережил три зимы пепла. Он знает каждую трещину в камнях площади и каждого, кто шептал угрозы городу.",
     voiceStyle:
       "медленная, размеренная речь старца; короткие фразы; иногда вставляет старые поговорки о пепле и пламени",
     knownFacts:
@@ -75,8 +75,7 @@ export const NPC_SEED: NpcSeed[] = [
       "Молодая женщина в порванной рясе. Зажигает свечи без огня и говорит шёпотом, который слышен даже в шуме.",
     fullLore:
       "Ивелин была единственной, кто не оставил часовню после того, как боги замолчали. Она помнит молитвы, которым больше никто не учит.",
-    voiceStyle:
-      "тихая, почти певучая речь; цитирует обрывки молитв; редко смотрит в глаза",
+    voiceStyle: "тихая, почти певучая речь; цитирует обрывки молитв; редко смотрит в глаза",
     knownFacts:
       "знает забытые ритуалы, помнит имена ушедших богов, в курсе того, кто приходил в часовню по ночам",
   },
@@ -90,8 +89,7 @@ export const NPC_SEED: NpcSeed[] = [
     role: "hunter",
     shortProfile:
       "Жилистый Торнвуд с татуировкой ветви на скуле. Двигается тихо, как тень от костра.",
-    voiceStyle:
-      "немногословный, говорит образами природы; делает долгие паузы между фразами",
+    voiceStyle: "немногословный, говорит образами природы; делает долгие паузы между фразами",
     knownFacts:
       "знает каждую тропу Пепельного Леса, следы любого зверя, и где прячутся пепельные волки",
   },
@@ -122,21 +120,67 @@ export const NPC_SEED: NpcSeed[] = [
     role: "smith",
     shortProfile:
       "Карат огромного роста, борода заплетена в три косы. От его молота гудит весь перевал.",
-    voiceStyle:
-      "грубоватый, краткий; смеётся низким раскатом; уважает только тех, кто умеет ждать",
+    voiceStyle: "грубоватый, краткий; смеётся низким раскатом; уважает только тех, кто умеет ждать",
     knownFacts:
       "знает каждый клинок, что был выкован на перевале; в курсе всех разбойников, что просят чинить оружие",
+  },
+  {
+    id: "scribe_velith",
+    name: "Велит",
+    title: "Писец Хроник",
+    tier: 2,
+    locationId: "ardvale_square",
+    faction: "ardvale_council",
+    role: "scribe",
+    shortProfile:
+      "Альвенори преклонных лет в выцветшей мантии. Носит с собой свиток, в котором записано больше, чем стоило бы знать.",
+    voiceStyle:
+      "сухая, книжная речь; любит вставлять цитаты из старых хроник; педантично уточняет имена и даты",
+    knownFacts:
+      "переписывает летописи Ардвейла, знает родословные знатных домов, в курсе кто и за чем приходил к Старейшине",
+  },
+  {
+    id: "tavernkeep_maira",
+    name: "Маира",
+    title: "Хозяйка Серого Очага",
+    tier: 2,
+    locationId: "salt_market",
+    faction: "maeran_caravan",
+    role: "tavern_keeper",
+    shortProfile:
+      "Маэранка с тёплой улыбкой и холодной памятью. Помнит каждого, кто пил у её очага, и сколько остался должен.",
+    voiceStyle:
+      "хрипловатая, дружелюбная; легко переходит с шутки на угрозу, если тронуть её людей",
+    knownFacts:
+      "слышит все слухи рынка, знает кто из наёмников ищет работу и кто прячется от стражи",
+  },
+  {
+    id: "ranger_silvar",
+    name: "Сильвар",
+    title: "Следопыт Перевала",
+    tier: 2,
+    locationId: "stonefang_pass",
+    faction: "neutral",
+    role: "ranger",
+    shortProfile:
+      "Хадрани в плаще цвета камня. Глаза цвета пыли, на поясе — связка костяных оберегов.",
+    voiceStyle:
+      "сжатая, рублёная речь пустынника; говорит только по делу; на похвалу отвечает молчанием",
+    knownFacts:
+      "знает безопасные тропы через перевал, заметит любую засаду за полдня пути; видел разбойников Каменного Клыка вблизи",
   },
 ];
 
 export async function seedNpcsIfEmpty(log: Logger): Promise<void> {
-  const existing = await db.select({ id: npcs.id }).from(npcs).limit(1);
-  if (existing.length > 0) {
-    log.info("NPC seed: already populated, skipping");
+  const existing = await db.select({ id: npcs.id }).from(npcs);
+  const existingIds = new Set(existing.map((e) => e.id));
+  const toInsert = NPC_SEED.filter((n) => !existingIds.has(n.id));
+  if (toInsert.length === 0) {
+    log.info({ have: existing.length }, "NPC seed: already populated");
     return;
   }
   await db.insert(npcs).values(
-    NPC_SEED.map((n) => ({
+    toInsert.map((n) => ({
       id: n.id,
       name: n.name,
       title: n.title ?? null,
@@ -150,5 +194,5 @@ export async function seedNpcsIfEmpty(log: Logger): Promise<void> {
       knownFacts: n.knownFacts,
     })),
   );
-  log.info({ count: NPC_SEED.length }, "NPC seed: inserted");
+  log.info({ inserted: toInsert.length, total: existing.length + toInsert.length }, "NPC seed: inserted");
 }

@@ -55,6 +55,10 @@ export const characters = pgTable(
     totalKills: integer("total_kills").notNull().default(0),
     totalDeaths: integer("total_deaths").notNull().default(0),
 
+    // Passive regen (replaces "rest at campfire" button).
+    // We tick HP/Mana on every read of the character based on (now - lastRegenAt).
+    lastRegenAt: timestamp("last_regen_at", { withTimezone: true }).defaultNow().notNull(),
+
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => ({
@@ -201,6 +205,11 @@ export const locations = pgTable("locations", {
   isFrontier: boolean("is_frontier").notNull().default(false), // true ⇒ AI may extend graph from here
   isGenerated: boolean("is_generated").notNull().default(false), // true ⇒ created by Master AI
   generatedAt: timestamp("generated_at", { withTimezone: true }),
+  // City-level passages: when player tries to traverse a `requires_guard` passage,
+  // a guard NPC warns about destination danger if level < destinationCityLevel.
+  cityLevel: integer("city_level").notNull().default(0), // 0 = wilderness, >0 = settled
+  requiresGuard: boolean("requires_guard").notNull().default(false), // gated traversal
+  destinationCityId: text("destination_city_id"), // for passages: where they lead
 });
 export type Location = typeof locations.$inferSelect;
 

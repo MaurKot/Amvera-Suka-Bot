@@ -95,7 +95,7 @@ function offsetCoords(parent: Location, allLocs: Location[]): { x: number; y: nu
 export interface GenerateLocationOptions {
   parentId: string;
   log: Logger;
-  triggeredBy?: "ai_cycle" | "admin" | "player";
+  triggeredBy?: "ai_cycle" | "admin" | "player" | "auto_discovery";
   hint?: string; // optional thematic hint
 }
 

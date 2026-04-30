@@ -56,31 +56,23 @@ export interface LocationDTO {
   generatedAt: string | null;
   // P6 active world events touching this location
   activeEvents: LocationEventBadge[];
+  // P7 — passage / city-level (Тропа Торговца guard system)
+  cityLevel: number;
+  requiresGuard: boolean;
+  destinationCityId: string | null;
 }
 
 export const listLocations = () => request<LocationDTO[]>("/locations");
 
-// P2 — procedurally extend the world from the player's current location.
-export interface GeneratedLocationResponse {
-  location: {
-    id: string;
-    name: string;
-    region: string;
-    description: string;
-    type: string;
-    isSafe: boolean;
-    coordX: number;
-    coordY: number;
-    isGenerated: boolean;
-  };
-  parentId: string;
-  via: "ai" | "fallback";
+// P7 — Auto-discovery payload returned by /locations/visit when stepping onto
+// a frontier node and the discovery roll succeeds. Replaces the old manual
+// "Шагнуть за горизонт" action.
+export interface AutoDiscoveredPath {
+  locationId: string;
+  locationName: string;
+  region: string;
+  description: string;
 }
-export const generateLocation = (fromLocationId: string, hint?: string) =>
-  request<GeneratedLocationResponse>("/locations/generate", {
-    method: "POST",
-    body: JSON.stringify({ fromLocationId, hint }),
-  });
 
 export interface VisitResult {
   locationId: string;
@@ -89,7 +81,28 @@ export interface VisitResult {
   buffActive: boolean;
   buffExpiresAt: string | null;
   achievementsAwarded: string[];
+  /** P7 — set when the visit revealed a brand-new path beyond a frontier. */
+  discoveredNewPath: AutoDiscoveredPath | null;
 }
+
+// P7 — guard check before traversing a `requiresGuard` passage (Тропа Торговца).
+export interface GuardCheckResult {
+  passageId: string;
+  passageName: string;
+  destinationCityId: string | null;
+  destinationCityName: string;
+  destinationCityLevel: number;
+  playerLevel: number;
+  tooWeak: boolean;
+  encounterChance: number;
+  warning: string;
+}
+
+export const guardCheck = (passageId: string) =>
+  request<GuardCheckResult>("/locations/guard-check", {
+    method: "POST",
+    body: JSON.stringify({ passageId }),
+  });
 
 export const visitLocation = (locationId: string) =>
   request<VisitResult>("/locations/visit", {
@@ -181,7 +194,7 @@ export interface ShopItemDTO {
   itemKey: string;
   name: string;
   itemType: "weapon" | "armor" | "trinket" | "potion" | "misc";
-  rarity: "common" | "uncommon" | "rare";
+  rarity: "common" | "uncommon" | "rare" | "epic" | "legendary";
   price: number;
   description: string;
   stats: Record<string, number>;

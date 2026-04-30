@@ -49,6 +49,27 @@ export function Layout({
             <div className="mt-2 flex items-center gap-3 text-[11px] font-mono text-muted-foreground">
               <span className="text-destructive/80">HP {character.hp}/{character.maxHp}</span>
               <span className="text-secondary-foreground/80">MN {character.mana}/{character.maxMana}</span>
+              {/* P7 — passive regen pill (replaces rest-at-campfire button) */}
+              {(() => {
+                const regen = (character as unknown as { regen?: { hpPerSec: number; zone: "safe" | "wilderness" | "dangerous" } }).regen;
+                if (!regen) return null;
+                const tone =
+                  regen.zone === "safe"
+                    ? "text-primary border-primary/40"
+                    : regen.zone === "dangerous"
+                    ? "text-destructive border-destructive/40"
+                    : "text-muted-foreground border-border/60";
+                return (
+                  <span
+                    className={cn("inline-flex items-center gap-1 rounded border px-1.5 py-0.5 no-shadow", tone)}
+                    title={`Восстановление HP: +${regen.hpPerSec.toFixed(2)}/с`}
+                    data-testid="regen-pill"
+                  >
+                    <span className="text-[9px]">⟳</span>
+                    +{regen.hpPerSec.toFixed(1)}/с
+                  </span>
+                );
+              })()}
               <span className="text-primary/80 ml-auto">⌬ {character.silver}</span>
             </div>
           )}

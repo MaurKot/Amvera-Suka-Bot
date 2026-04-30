@@ -11,14 +11,23 @@ import {
   getCurrentCharacter,
   recomputeDerived,
 } from "../game/characterService";
+import { applyPassiveRegen } from "../game/regenService";
 import { serializeCharacter } from "../game/serializers";
 import { getLocation, getRace, getCharClass } from "../game/lore";
 
 const router: IRouter = Router();
 
 router.get("/character", async (req: Request, res: Response) => {
-  const c = await getCurrentCharacter(req.sessionId);
-  res.json({ character: c ? serializeCharacter(c) : null });
+  const raw = await getCurrentCharacter(req.sessionId);
+  if (!raw) {
+    res.json({ character: null });
+    return;
+  }
+  // Tick passive regeneration on every read — replaces the rest-at-campfire button.
+  const { character, rate } = await applyPassiveRegen(raw);
+  const serialized = serializeCharacter(character) as Record<string, unknown>;
+  serialized["regen"] = rate; // { hpPerSec, manaPerSec, zone }
+  res.json({ character: serialized });
 });
 
 router.post("/character", async (req: Request, res: Response) => {
@@ -93,32 +102,14 @@ router.post("/character/allocate", async (req: Request, res: Response) => {
   res.json(serializeCharacter(updated[0]!));
 });
 
-router.post("/character/rest", async (req: Request, res: Response) => {
-  const c = await getCurrentCharacter(req.sessionId);
-  if (!c) {
-    res.status(404).json({ error: "Персонаж не найден" });
-    return;
-  }
-  if (c.inBattle) {
-    res.status(400).json({ error: "Нельзя отдыхать во время боя" });
-    return;
-  }
-  const cost = 10;
-  if (c.silver < cost) {
-    res.status(400).json({ error: "Недостаточно серебра, чтобы отдохнуть" });
-    return;
-  }
-  const updated = await db
-    .update(characters)
-    .set({
-      hp: c.maxHp,
-      mana: c.maxMana,
-      energy: c.maxEnergy,
-      silver: c.silver - cost,
-    })
-    .where(eq(characters.id, c.id))
-    .returning();
-  res.json(serializeCharacter(updated[0]!));
+// /character/rest — REMOVED. Replaced by passive HP/Mana regeneration that
+// ticks on every GET /character call. See `regenService.ts`. The endpoint is
+// kept as 410 Gone so old clients receive a clear, localized error instead of
+// hanging on a 404.
+router.post("/character/rest", async (_req: Request, res: Response) => {
+  res
+    .status(410)
+    .json({ error: "Костёр больше не нужен — раны затягиваются сами, особенно в безопасных зонах." });
 });
 
 router.post("/character/move", async (req: Request, res: Response) => {

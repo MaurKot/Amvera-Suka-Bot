@@ -1,17 +1,18 @@
-import { useGetCharacter, useAllocateStat, useRestCharacter, getGetCharacterQueryKey, AllocateStatRequestStat } from "@workspace/api-client-react";
+import { useGetCharacter, useAllocateStat, getGetCharacterQueryKey, AllocateStatRequestStat } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { Skull, Heart, Zap, Sparkles, Shield, Sword, Eye, Brain, Flame, Plus } from "lucide-react";
+import { Skull, Heart, Zap, Sparkles, Shield, Sword, Eye, Brain, Plus, Sprout } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+
+interface RegenRate { hpPerSec: number; manaPerSec: number; zone: "safe" | "wilderness" | "dangerous" }
 
 export function CharacterSheet() {
   const queryClient = useQueryClient();
   const { data: characterData, isLoading } = useGetCharacter();
   const allocateStat = useAllocateStat();
-  const restCharacter = useRestCharacter();
 
   if (isLoading || !characterData?.character) {
     return (
@@ -24,17 +25,17 @@ export function CharacterSheet() {
   }
 
   const character = characterData.character;
+  // P7 — passive regen rate is appended by the server on every GET /character.
+  // The orval-generated type doesn't know about it, so we read it loosely.
+  const regen = (character as unknown as { regen?: RegenRate }).regen ?? null;
+  const zoneLabel: Record<string, string> = {
+    safe: "Безопасная зона — раны затягиваются быстро",
+    wilderness: "Глушь — восстановление медленное",
+    dangerous: "Опасная зона — едва-едва",
+  };
 
   const handleAllocate = (stat: AllocateStatRequestStat) => {
     allocateStat.mutate({ data: { stat } }, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getGetCharacterQueryKey() });
-      }
-    });
-  };
-
-  const handleRest = () => {
-    restCharacter.mutate(undefined, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getGetCharacterQueryKey() });
       }
@@ -112,15 +113,41 @@ export function CharacterSheet() {
                 </div>
               </div>
 
+              {/* P7 — passive regeneration replaces the old "Отдых у костра" button.
+                  Healing happens automatically over time, faster in safe zones. */}
               <div className="pt-4 border-t border-white/5">
-                <Button 
-                  onClick={handleRest} 
-                  disabled={restCharacter.isPending || character.silver < 5 || (character.hp === character.maxHp && character.mana === character.maxMana)}
-                  className="w-full bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 hover:border-primary/50 transition-all font-serif tracking-widest"
+                <div
+                  className={`rounded border p-3 flex items-start gap-3 ${
+                    regen?.zone === "safe"
+                      ? "border-primary/30 bg-primary/5"
+                      : regen?.zone === "dangerous"
+                      ? "border-destructive/30 bg-destructive/5"
+                      : "border-white/10 bg-white/[0.02]"
+                  }`}
+                  data-testid="regen-card"
                 >
-                  <Flame className="w-4 h-4 mr-2" />
-                  Отдых у костра (5 серебра)
-                </Button>
+                  <Sprout
+                    className={`w-5 h-5 mt-0.5 ${
+                      regen?.zone === "safe"
+                        ? "text-primary"
+                        : regen?.zone === "dangerous"
+                        ? "text-destructive"
+                        : "text-muted-foreground"
+                    }`}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-serif text-sm text-foreground">Естественное восстановление</p>
+                    <p className="text-xs text-muted-foreground italic mt-0.5">
+                      {regen ? zoneLabel[regen.zone] : "Раны затягиваются сами"}
+                    </p>
+                    {regen && (
+                      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] font-mono text-muted-foreground">
+                        <span className="text-destructive/80">+{regen.hpPerSec.toFixed(2)} HP/с</span>
+                        <span className="text-secondary-foreground/80">+{regen.manaPerSec.toFixed(2)} мана/с</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>

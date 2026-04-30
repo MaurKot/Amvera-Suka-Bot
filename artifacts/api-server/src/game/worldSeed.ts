@@ -155,30 +155,37 @@ export async function seedWorldIfEmpty(log: Logger): Promise<void> {
     coordY: l.coordY,
     isFrontier: l.isFrontier ?? false,
     isGenerated: false,
+    cityLevel: l.cityLevel ?? 0,
+    requiresGuard: l.requiresGuard ?? false,
+    destinationCityId: l.destinationCityId ?? null,
   }));
   if (newLocs.length > 0) {
     await db.insert(locations).values(newLocs);
     log.info({ inserted: newLocs.length }, "World seed: locations inserted");
   }
 
-  // Backfill graph metadata for installations that were seeded BEFORE the
-  // graph fields existed. Idempotent — only patches rows that still have
-  // empty `connected_to`.
+  // Always-resync graph metadata so canonical map (P7 starter rewrite)
+  // overwrites any drift from old seeds. Adjacency is the source of truth
+  // in `lore.ts`, NOT in the DB. AI-generated locations keep their own edges
+  // because they are not in `LOCATIONS`.
   for (const l of LOCATIONS) {
-    const [row] = await db.select().from(locations).where(eq(locations.id, l.id)).limit(1);
-    if (!row) continue;
-    const currentNeighbors = (row.connectedTo as string[] | null) ?? [];
-    if (currentNeighbors.length === 0 && l.connectedTo.length > 0) {
-      await db
-        .update(locations)
-        .set({
-          connectedTo: l.connectedTo,
-          coordX: l.coordX,
-          coordY: l.coordY,
-          isFrontier: l.isFrontier ?? false,
-        })
-        .where(eq(locations.id, l.id));
-    }
+    await db
+      .update(locations)
+      .set({
+        name: l.name,
+        region: l.region,
+        description: l.description,
+        type: l.type,
+        isSafe: l.isSafe,
+        connectedTo: l.connectedTo,
+        coordX: l.coordX,
+        coordY: l.coordY,
+        isFrontier: l.isFrontier ?? false,
+        cityLevel: l.cityLevel ?? 0,
+        requiresGuard: l.requiresGuard ?? false,
+        destinationCityId: l.destinationCityId ?? null,
+      })
+      .where(eq(locations.id, l.id));
   }
 
   // Factions

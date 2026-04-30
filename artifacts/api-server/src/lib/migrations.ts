@@ -122,6 +122,14 @@ export async function runStartupMigrations(log: Logger): Promise<void> {
         reason text,
         updated_at timestamptz NOT NULL DEFAULT now()
       )`],
+
+    // ── Passive regeneration (replaces "rest at campfire" button) ─────────
+    ["characters.last_regen_at", sql`ALTER TABLE characters ADD COLUMN IF NOT EXISTS last_regen_at timestamptz NOT NULL DEFAULT now()`],
+
+    // ── City-level passages (Тропа Торговца guard checks) ─────────────────
+    ["locations.city_level", sql`ALTER TABLE locations ADD COLUMN IF NOT EXISTS city_level integer NOT NULL DEFAULT 0`],
+    ["locations.requires_guard", sql`ALTER TABLE locations ADD COLUMN IF NOT EXISTS requires_guard boolean NOT NULL DEFAULT false`],
+    ["locations.destination_city_id", sql`ALTER TABLE locations ADD COLUMN IF NOT EXISTS destination_city_id text`],
   ];
 
   for (const [name, q] of steps) {

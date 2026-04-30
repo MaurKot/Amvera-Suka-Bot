@@ -16,17 +16,20 @@ import {
   Lock,
   MapPin,
   Shield,
+  ShieldAlert,
   Sparkles,
   Star,
+  Swords,
   Wand2,
   AlertTriangle,
 } from "lucide-react";
 import {
   listLocations,
   visitLocation,
-  generateLocation,
+  guardCheck,
   type LocationDTO,
   type VisitResult,
+  type GuardCheckResult,
 } from "@/lib/api";
 import { useMainButton, haptic } from "@/lib/telegram";
 import { useRealtimeEvents } from "@/lib/realtime";
@@ -47,6 +50,7 @@ export function WorldMap() {
 
   const [selected, setSelected] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<VisitResult | null>(null);
+  const [guardWarning, setGuardWarning] = useState<GuardCheckResult | null>(null);
 
   const { data: locations, refetch } = useQuery({
     queryKey: ["locations"],
@@ -70,8 +74,15 @@ export function WorldMap() {
   const visit = useMutation({
     mutationFn: (locationId: string) => visitLocation(locationId),
     onSuccess: (data) => {
-      haptic(data.isFirstDiscoverer ? "success" : "light");
+      haptic(data.isFirstDiscoverer || data.discoveredNewPath ? "success" : "light");
       setLastResult(data);
+      // P7 — Auto-discovery toast: a new path was revealed at the frontier.
+      if (data.discoveredNewPath) {
+        toast({
+          title: `Открыта новая тропа — «${data.discoveredNewPath.locationName}»`,
+          description: data.discoveredNewPath.description,
+        });
+      }
       queryClient.invalidateQueries({ queryKey: getGetCharacterQueryKey() });
       queryClient.invalidateQueries({ queryKey: ["locations"] });
       queryClient.invalidateQueries({ queryKey: ["achievements"] });
@@ -86,21 +97,28 @@ export function WorldMap() {
     },
   });
 
-  const expand = useMutation({
-    mutationFn: () => generateLocation(character!.locationId),
-    onSuccess: (res) => {
-      haptic("success");
-      toast({
-        title: `Открыто новое место — «${res.location.name}»`,
-        description: res.via === "ai" ? "Шёпот мира соткал новый путь" : "Старая тропа припомнила место",
-      });
-      void refetch();
-    },
-    onError: (e: Error) => {
-      haptic("error");
-      toast({ title: "Мир не пускает дальше", description: e.message, variant: "destructive" });
-    },
-  });
+  // P7 — Guard check before traversing a guarded passage (Тропа Торговца).
+  // If the player is too weak we open a warning dialog; otherwise we proceed.
+  const startVisit = (locationId: string) => {
+    const loc = locations?.find((l) => l.id === locationId);
+    if (loc?.requiresGuard) {
+      guardCheck(locationId)
+        .then((res) => {
+          if (res.tooWeak) {
+            haptic("warning");
+            setGuardWarning(res);
+          } else {
+            visit.mutate(locationId);
+          }
+        })
+        .catch((e: Error) => {
+          haptic("error");
+          toast({ title: "Стража молчит", description: e.message, variant: "destructive" });
+        });
+    } else {
+      visit.mutate(locationId);
+    }
+  };
 
   const selectedLoc = locations?.find((l) => l.id === selected);
   const canVisit =
@@ -109,12 +127,14 @@ export function WorldMap() {
   useMainButton({
     text: selectedLoc
       ? selectedLoc.isReachable
-        ? `Посетить «${selectedLoc.name}»`
+        ? selectedLoc.requiresGuard
+          ? `Идти на «${selectedLoc.name}» (тропа торговца)`
+          : `Посетить «${selectedLoc.name}»`
         : "Слишком далеко — нет тропы"
       : "Выбери место на карте",
     visible: !!selectedLoc,
     enabled: canVisit && !visit.isPending,
-    onClick: () => selected && visit.mutate(selected),
+    onClick: () => selected && startVisit(selected),
   });
 
   useEffect(() => {
@@ -171,27 +191,12 @@ export function WorldMap() {
         }}
       />
 
-      {/* P2 — frontier explore button */}
-      <div className="mt-3 mb-3 flex items-center gap-2">
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          disabled={expand.isPending || !!character?.inBattle}
-          onClick={() => {
-            haptic("medium");
-            expand.mutate();
-          }}
-          className="border-primary/40 text-primary hover:bg-primary/10"
-          data-testid="btn-expand-world"
-        >
-          <Wand2 className="h-3.5 w-3.5 mr-1.5" />
-          {expand.isPending ? "Шёпот мира…" : "Шагнуть за горизонт"}
-        </Button>
-        <span className="text-[11px] text-muted-foreground italic">
-          Раздвинь карту — Master AI плетёт новые тропы
-        </span>
-      </div>
+      {/* P7 — Frontier discovery is now AUTOMATIC on visit. The old "Шагнуть
+          за горизонт" button is gone; the world reveals itself as you explore. */}
+      <p className="mt-3 mb-3 text-[11px] text-muted-foreground italic flex items-center gap-1.5">
+        <Wand2 className="h-3 w-3" />
+        Тропы за горизонтом открываются сами — иди к границам мира.
+      </p>
 
       {/* Detail list */}
       <div className="grid gap-3">
@@ -204,9 +209,70 @@ export function WorldMap() {
               haptic("selection");
               setSelected((prev) => (prev === loc.id ? null : loc.id));
             }}
+            onVisit={startVisit}
           />
         ))}
       </div>
+
+      {/* P7 — Guard warning dialog (Тропа Торговца) */}
+      <AnimatePresence>
+        {guardWarning && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-background/85 backdrop-blur-sm flex items-end sm:items-center justify-center p-3"
+            onClick={() => setGuardWarning(null)}
+          >
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 20, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm rounded-md border border-destructive/50 bg-card/95 p-4 shadow-2xl"
+              data-testid="guard-warning-dialog"
+            >
+              <div className="flex items-start gap-2 mb-2">
+                <ShieldAlert className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="font-serif text-base text-destructive">Стража предупреждает</h3>
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                    {guardWarning.passageName} → {guardWarning.destinationCityName} (ур. {guardWarning.destinationCityLevel})
+                  </p>
+                </div>
+              </div>
+              <p className="text-sm text-foreground/90 leading-snug mb-3">
+                {guardWarning.warning}
+              </p>
+              <div className="text-[11px] text-muted-foreground mb-3 flex items-center gap-1">
+                <Swords className="h-3 w-3" /> Шанс встретить разбойников: {Math.round(guardWarning.encounterChance * 100)}%
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setGuardWarning(null)}
+                  data-testid="btn-guard-cancel"
+                >
+                  Подождать, окрепнуть
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="flex-1"
+                  onClick={() => {
+                    const id = guardWarning.passageId;
+                    setGuardWarning(null);
+                    visit.mutate(id);
+                  }}
+                  data-testid="btn-guard-proceed"
+                >
+                  Идти всё равно
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </Layout>
   );
 }
@@ -357,10 +423,12 @@ function LocationCard({
   loc,
   isSelected,
   onSelect,
+  onVisit,
 }: {
   loc: LocationDTO;
   isSelected: boolean;
   onSelect: () => void;
+  onVisit: (id: string) => void;
 }) {
   return (
     <Card
@@ -423,6 +491,16 @@ function LocationCard({
                   <Star className="h-3 w-3" /> Бафф
                 </Badge>
               )}
+              {loc.requiresGuard && (
+                <Badge variant="outline" className="border-destructive/40 text-destructive text-[10px] uppercase no-shadow flex items-center gap-1">
+                  <ShieldAlert className="h-3 w-3" /> Под охраной
+                </Badge>
+              )}
+              {loc.cityLevel > 0 && (
+                <Badge variant="outline" className="border-primary/30 text-primary/90 text-[10px] uppercase no-shadow">
+                  Ур. {loc.cityLevel}
+                </Badge>
+              )}
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">{loc.region}</p>
             <p className="text-sm text-foreground/90 mt-2 leading-snug line-clamp-3">{loc.description}</p>
@@ -467,16 +545,15 @@ function LocationCard({
                 onClick={(e) => {
                   e.stopPropagation();
                   if (!loc.isReachable) return;
-                  const btn = e.currentTarget as HTMLButtonElement;
-                  btn.disabled = true;
-                  visitLocation(loc.id)
-                    .then(() => window.location.reload())
-                    .catch(() => {
-                      btn.disabled = false;
-                    });
+                  onVisit(loc.id);
                 }}
+                data-testid={`btn-visit-${loc.id}`}
               >
-                {loc.isReachable ? "Посетить" : "Нет тропы отсюда"}
+                {loc.isReachable
+                  ? loc.requiresGuard
+                    ? "Идти по тропе"
+                    : "Посетить"
+                  : "Нет тропы отсюда"}
               </Button>
             )}
           </div>

@@ -15,10 +15,16 @@ export function Quests() {
   const { data: characterData } = useGetCharacter();
   const character = characterData?.character;
 
+  // P7 — Quests must always re-fetch when the tab is opened so newly-unlocked
+  // social quests, repaired relations, and freshly accepted/completed objectives
+  // appear immediately.
   const { data: quests, refetch } = useQuery({
     queryKey: ["quests"],
     queryFn: listQuests,
     enabled: !!character,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
   useRealtimeEvents((ev) => {

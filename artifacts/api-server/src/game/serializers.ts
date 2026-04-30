@@ -30,6 +30,7 @@ export function serializeCharacter(c: Character) {
     isAlive: c.isAlive,
     totalKills: c.totalKills,
     totalDeaths: c.totalDeaths,
+    lastRegenAt: c.lastRegenAt?.toISOString?.() ?? null,
   };
 }
 

@@ -9,8 +9,16 @@ import {
 import { and, eq, gt, isNull, or } from "drizzle-orm";
 import { publishEvent } from "../lib/realtime";
 import type { Logger } from "pino";
+import { generateAdjacentLocation } from "./locationGenerator";
 
 const FIRST_DISCOVERER_KEY = "first_discoverer";
+
+export interface AutoDiscoveredPath {
+  locationId: string;
+  locationName: string;
+  region: string;
+  description: string;
+}
 
 export interface VisitResult {
   location: typeof locations.$inferSelect;
@@ -18,6 +26,10 @@ export interface VisitResult {
   buffActive: boolean;
   buffExpiresAt: Date | null;
   achievementsAwarded: string[];
+  /** P7 — when stepping onto a frontier location, the player may auto-discover
+   * a brand-new path. Triggered by formula: chance = (luck/maxLuck) * directive
+   * * (playerLevel/zoneCap). */
+  discoveredNewPath: AutoDiscoveredPath | null;
 }
 
 /**
@@ -145,12 +157,52 @@ export async function visitLocation(
     payload: { characterId, characterName: c.name, locationId },
   });
 
+  // ── P7 — Frontier auto-discovery ──────────────────────────────────────
+  // Replaces the old "Шагнуть за горизонт" button. Whenever a player visits a
+  // frontier location, we roll for a procedural new neighbour using the formula
+  //   chance = (luck/MAX_LUCK) * masterAiDirective * (playerLevel/zoneCap)
+  let discoveredNewPath: AutoDiscoveredPath | null = null;
+  const MAX_LUCK = 5;
+  const ZONE_CAP_FOR = (lvl: number) => Math.max(1, lvl); // dynamic zone cap from directive
+  if (loc.isFrontier && previousLocationId !== locationId) {
+    const masterAiDirective = 0.25; // base discovery weight; tuned per-region by world director
+    const luckTerm = Math.min(1, c.luck / MAX_LUCK);
+    const zoneCap = ZONE_CAP_FOR(Math.max(c.level, 1));
+    const levelTerm = Math.min(1, c.level / Math.max(1, zoneCap + 2));
+    const chance = Math.min(0.6, luckTerm * masterAiDirective * (1 + levelTerm));
+
+    if (Math.random() < chance) {
+      try {
+        const result = await generateAdjacentLocation({
+          parentId: locationId,
+          log,
+          triggeredBy: "auto_discovery",
+        });
+        if (result) {
+          discoveredNewPath = {
+            locationId: result.location.id,
+            locationName: result.location.name,
+            region: result.location.region,
+            description: result.location.description,
+          };
+          log.info(
+            { from: locationId, to: result.location.id, by: c.name, chance },
+            "Auto-discovery: new path revealed",
+          );
+        }
+      } catch (err) {
+        log.warn({ err: (err as Error).message, from: locationId }, "Auto-discovery roll failed");
+      }
+    }
+  }
+
   return {
     location: { ...loc, discoveredById: isFirst ? characterId : loc.discoveredById, discoveredByName: isFirst ? c.name : loc.discoveredByName, discoveredAt: isFirst ? new Date() : loc.discoveredAt },
     isFirstDiscoverer: isFirst,
     buffActive: isFirst,
     buffExpiresAt,
     achievementsAwarded: awarded,
+    discoveredNewPath,
   };
 }
 

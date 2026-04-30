@@ -123,6 +123,47 @@
 Новые env-vars: `ADMIN_TOKEN` (обязателен для `/admin`),
 `WORLD_CYCLE_ENABLED`, `WORLD_CYCLE_INTERVAL_MS`.
 
+## Аудит P7 (апрель 2026) — выживаемость и мир
+
+- **Авто-открытие фронтира**: кнопка «Шагнуть за горизонт» удалена,
+  `POST /api/locations/generate` отвечает 410. Открытие новой тропы
+  происходит автоматически при посещении frontier-локации с шансом
+  `clamp((luck/MAX_LUCK)*masterDirective*(playerLevel/zoneCap), 0, 0.6)`,
+  результат пишется в `VisitResult.discoveredNewPath` (toast + лог).
+- **Пассивная регенерация HP/маны**: `Character.lastRegenAt` (миграция #25),
+  `regenService.applyPassiveRegen()` тикает на каждом `GET /api/character`
+  по локации: safe = ×2, wilderness = ×1, dangerous = ×0.5;
+  `POST /api/character/rest` отдаёт 410. На клиенте — карточка «Естественное
+  восстановление» в `pages/character.tsx` и пилюля `+X.X HP/с` в шапке.
+- **Стартовая карта** (worldSeed v2 — всегда ресинхронизирует канон):
+  `Город Ардвейл` + 8 окрестностей + `Тропа Торговца` к городу 2-го уровня.
+  Поля `cityLevel`, `requiresGuard`, `destinationCityId` на `locations`.
+  Новый эндпойнт `POST /api/locations/:id/guard-check` возвращает
+  предупреждение, шанс боя `1 - lvl/destLvl` и `tooWeak` (когда уровень
+  игрока меньше уровня города назначения). Клиент показывает диалог
+  «Стража предупреждает» с кнопками «Подождать, окрепнуть»/«Идти всё равно».
+- **Квесты — всегда свежие**: `useQuery` для `/quests` теперь с
+  `refetchOnMount:'always'` + `staleTime:0` + `refetchOnWindowFocus:true`.
+- **Combat overhaul** (`game/battleService.ts`):
+  - **Status effects**: `bleed` / `poison` (DoT, 2-3 за стак), `stun`
+    (пропуск хода), `fear` (×0.6 урон). Стакаются (cap 5), хранятся в
+    синтетической записи `status_state` внутри `battle.log`.
+  - **Initiative**: каждый раунд бросок `agility + d6` против
+    `enemyLevel + 4 + d6`; проигравший бьёт вторым.
+  - **Finishing blows**: атака/heavy при HP врага ≤ 20% превращается в
+    добивающий удар с особым описанием.
+- **Тройной каталог торговли**: `shopCatalog.ts` теперь содержит 5
+  редкостей (common/uncommon/rare/epic/legendary) для каждого из трёх
+  торговцев; `ShopItemDTO` сериализует `rarity`.
+- **Типографика и палитра**: `body 16px/1.7` weight ≥500;
+  `p, li, dd, dt, blockquote { font-weight: 500 }`; faction stripes
+  `.npc-stripe-{maeran|karath|sahvaki|velkhar|erivan|outcast}` для NPC-карточек;
+  `.sys-msg` — моно-шрифт золотом для системных сообщений.
+
+Все изменения — без новых env-vars; миграция #25 (`lastRegenAt`,
+`cityLevel`, `requiresGuard`, `destinationCityId`) применяется автоматически
+на старте.
+
 ## Деплой на Amvera Cloud
 
 - `Dockerfile` — multi-stage: builder (pnpm install + vite build + esbuild) → runtime (node:22-alpine + `dist` + `public`).

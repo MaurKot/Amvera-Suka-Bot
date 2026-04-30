@@ -4,7 +4,6 @@ import { db, locations, characterAchievements, activeWorldEvents } from "@worksp
 import { and, eq, gt, isNull, or } from "drizzle-orm";
 import { getCurrentCharacter } from "../game/characterService";
 import { visitLocation, LocationNotConnectedError } from "../game/locationService";
-import { generateAdjacentLocation } from "../game/locationGenerator";
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
@@ -74,6 +73,10 @@ router.get("/locations", async (req: Request, res: Response) => {
       isFrontier: l.isFrontier,
       isGenerated: l.isGenerated,
       generatedAt: l.generatedAt?.toISOString() ?? null,
+      // P7 — passage / city-level metadata (Тропа Торговца guard system)
+      cityLevel: l.cityLevel,
+      requiresGuard: l.requiresGuard,
+      destinationCityId: l.destinationCityId,
       activeEvents: eventsByLoc.get(l.id) ?? [],
     })),
   );
@@ -109,6 +112,8 @@ router.post("/locations/visit", async (req: Request, res: Response) => {
       buffActive: result.buffActive,
       buffExpiresAt: result.buffExpiresAt?.toISOString() ?? null,
       achievementsAwarded: result.achievementsAwarded,
+      // P7 — auto-discovery from frontier visit (replaces "Шагнуть за горизонт")
+      discoveredNewPath: result.discoveredNewPath,
     });
   } catch (err) {
     if (err instanceof LocationNotConnectedError) {
@@ -119,13 +124,26 @@ router.post("/locations/visit", async (req: Request, res: Response) => {
   }
 });
 
-// ── P2: procedural location generation (player-triggered, throttled) ──────
-const GenerateBody = z.object({ fromLocationId: z.string().min(1), hint: z.string().max(80).optional() });
+// ── P7: /locations/generate is REMOVED for players (frontier discovery is
+// now automatic on visit, see locationService.ts auto-discovery). The endpoint
+// remains under the admin route at /admin/locations/generate.
+router.post("/locations/generate", async (_req: Request, res: Response) => {
+  res
+    .status(410)
+    .json({ error: "Шаг за горизонт больше не нужен — новые тропы открываются сами на границах мира." });
+});
 
-router.post("/locations/generate", async (req: Request, res: Response) => {
-  const parsed = GenerateBody.safeParse(req.body);
+// ── P7: Тропа Торговца guard check ───────────────────────────────────────
+// Player calls this BEFORE attempting to traverse a `requiresGuard` passage.
+// Returns the guard's warning if player level < destination city level + a
+// computed combat-encounter chance (1 - level/destCityLevel) that the client
+// may use to show a confirmation dialog.
+const GuardCheckBody = z.object({ passageId: z.string().min(1) });
+
+router.post("/locations/guard-check", async (req: Request, res: Response) => {
+  const parsed = GuardCheckBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: "Не указано место отправления" });
+    res.status(400).json({ error: "Не указана тропа" });
     return;
   }
   const c = await getCurrentCharacter(req.sessionId);
@@ -133,48 +151,36 @@ router.post("/locations/generate", async (req: Request, res: Response) => {
     res.status(404).json({ error: "Персонаж не найден" });
     return;
   }
-  if (c.locationId !== parsed.data.fromLocationId) {
-    res.status(400).json({ error: "Расширять можно только с того места, где ты сейчас находишься" });
+  const [passage] = await db.select().from(locations).where(eq(locations.id, parsed.data.passageId)).limit(1);
+  if (!passage || !passage.requiresGuard) {
+    res.status(400).json({ error: "Эта дорога не охраняется" });
     return;
   }
-  // Soft throttle: each character may trigger one generation per 30 minutes.
-  // We use the world_events table as a poor man's audit log / rate limiter.
-  const since = new Date(Date.now() - 1000 * 60 * 30);
-  const recent = await db
-    .select()
-    .from(activeWorldEvents)
-    .where(and(eq(activeWorldEvents.eventKind, "frontier_explore"), gt(activeWorldEvents.startsAt, since)))
-    .limit(1);
-  if (recent.length > 0) {
-    res.status(429).json({ error: "Кто-то уже расширил мир за этим горизонтом — отдохни немного" });
-    return;
+  const destCityId = passage.destinationCityId;
+  let destCityLevel = passage.cityLevel ?? 1;
+  let destCityName = passage.name;
+  if (destCityId) {
+    const [dest] = await db.select().from(locations).where(eq(locations.id, destCityId)).limit(1);
+    if (dest) {
+      destCityLevel = dest.cityLevel ?? 1;
+      destCityName = dest.name;
+    }
   }
-
-  const result = await generateAdjacentLocation({
-    parentId: parsed.data.fromLocationId,
-    log: logger,
-    triggeredBy: "player",
-    hint: parsed.data.hint,
-  });
-  if (!result) {
-    res.status(409).json({ error: "Из этой локации нельзя расширять мир" });
-    return;
-  }
-
+  // Combat encounter chance during transit (player request: 1 - lvl/destLvl)
+  const encounterChance = Math.max(0, Math.min(1, 1 - c.level / Math.max(destCityLevel, 1)));
+  const tooWeak = c.level < destCityLevel;
   res.json({
-    location: {
-      id: result.location.id,
-      name: result.location.name,
-      region: result.location.region,
-      description: result.location.description,
-      type: result.location.type,
-      isSafe: result.location.isSafe,
-      coordX: result.location.coordX,
-      coordY: result.location.coordY,
-      isGenerated: result.location.isGenerated,
-    },
-    parentId: result.parentId,
-    via: result.reason,
+    passageId: passage.id,
+    passageName: passage.name,
+    destinationCityId: destCityId,
+    destinationCityName: destCityName,
+    destinationCityLevel: destCityLevel,
+    playerLevel: c.level,
+    tooWeak,
+    encounterChance,
+    warning: tooWeak
+      ? `Стой, странник. ${destCityName} — город уровня ${destCityLevel}, а тебе ещё рано. На тропе тебя могут подстеречь разбойники. Шанс встречи — ${Math.round(encounterChance * 100)}%. Точно идёшь?`
+      : `Дорога на ${destCityName} проходима. Будь осторожен — разбойники там встречаются с шансом ${Math.round(encounterChance * 100)}%.`,
   });
 });
 

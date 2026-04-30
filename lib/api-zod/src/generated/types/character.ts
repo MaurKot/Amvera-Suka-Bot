@@ -34,4 +34,16 @@ export interface Character {
   isAlive: boolean;
   totalKills: number;
   totalDeaths: number;
+  /** Hidden archetype label (e.g. brute, sneak, scholar). Null until psyche stabilizes. */
+  archetype?: string | null;
+  /** Hidden trait. 0..100 — increases with kills */
+  cruelty?: number;
+  /** Hidden trait. 0..100 — grows with discovery and dialog exploration. */
+  curiosity?: number;
+  /** Hidden trait. 0..100 — grows with quest completion and faction work. */
+  loyalty?: number;
+  /** Hidden trait. 0..100 — grows with flight and defeats. */
+  fearLevel?: number;
+  /** Public renown. -100..100 — visible to NPCs. */
+  fame?: number;
 }

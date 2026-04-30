@@ -95,6 +95,36 @@ export const GetCharacterResponse = zod.object({
       isAlive: zod.boolean(),
       totalKills: zod.number(),
       totalDeaths: zod.number(),
+      archetype: zod
+        .string()
+        .nullish()
+        .describe(
+          "Hidden archetype label (e.g. brute, sneak, scholar). Null until psyche stabilizes.",
+        ),
+      cruelty: zod
+        .number()
+        .optional()
+        .describe("Hidden trait. 0..100 — increases with kills"),
+      curiosity: zod
+        .number()
+        .optional()
+        .describe(
+          "Hidden trait. 0..100 — grows with discovery and dialog exploration.",
+        ),
+      loyalty: zod
+        .number()
+        .optional()
+        .describe(
+          "Hidden trait. 0..100 — grows with quest completion and faction work.",
+        ),
+      fearLevel: zod
+        .number()
+        .optional()
+        .describe("Hidden trait. 0..100 — grows with flight and defeats."),
+      fame: zod
+        .number()
+        .optional()
+        .describe("Public renown. -100..100 — visible to NPCs."),
     }),
     zod.null(),
   ]),
@@ -143,6 +173,36 @@ export const CreateCharacterResponse = zod.object({
   isAlive: zod.boolean(),
   totalKills: zod.number(),
   totalDeaths: zod.number(),
+  archetype: zod
+    .string()
+    .nullish()
+    .describe(
+      "Hidden archetype label (e.g. brute, sneak, scholar). Null until psyche stabilizes.",
+    ),
+  cruelty: zod
+    .number()
+    .optional()
+    .describe("Hidden trait. 0..100 — increases with kills"),
+  curiosity: zod
+    .number()
+    .optional()
+    .describe(
+      "Hidden trait. 0..100 — grows with discovery and dialog exploration.",
+    ),
+  loyalty: zod
+    .number()
+    .optional()
+    .describe(
+      "Hidden trait. 0..100 — grows with quest completion and faction work.",
+    ),
+  fearLevel: zod
+    .number()
+    .optional()
+    .describe("Hidden trait. 0..100 — grows with flight and defeats."),
+  fame: zod
+    .number()
+    .optional()
+    .describe("Public renown. -100..100 — visible to NPCs."),
 });
 
 /**
@@ -193,6 +253,36 @@ export const AllocateStatResponse = zod.object({
   isAlive: zod.boolean(),
   totalKills: zod.number(),
   totalDeaths: zod.number(),
+  archetype: zod
+    .string()
+    .nullish()
+    .describe(
+      "Hidden archetype label (e.g. brute, sneak, scholar). Null until psyche stabilizes.",
+    ),
+  cruelty: zod
+    .number()
+    .optional()
+    .describe("Hidden trait. 0..100 — increases with kills"),
+  curiosity: zod
+    .number()
+    .optional()
+    .describe(
+      "Hidden trait. 0..100 — grows with discovery and dialog exploration.",
+    ),
+  loyalty: zod
+    .number()
+    .optional()
+    .describe(
+      "Hidden trait. 0..100 — grows with quest completion and faction work.",
+    ),
+  fearLevel: zod
+    .number()
+    .optional()
+    .describe("Hidden trait. 0..100 — grows with flight and defeats."),
+  fame: zod
+    .number()
+    .optional()
+    .describe("Public renown. -100..100 — visible to NPCs."),
 });
 
 /**
@@ -226,6 +316,36 @@ export const RestCharacterResponse = zod.object({
   isAlive: zod.boolean(),
   totalKills: zod.number(),
   totalDeaths: zod.number(),
+  archetype: zod
+    .string()
+    .nullish()
+    .describe(
+      "Hidden archetype label (e.g. brute, sneak, scholar). Null until psyche stabilizes.",
+    ),
+  cruelty: zod
+    .number()
+    .optional()
+    .describe("Hidden trait. 0..100 — increases with kills"),
+  curiosity: zod
+    .number()
+    .optional()
+    .describe(
+      "Hidden trait. 0..100 — grows with discovery and dialog exploration.",
+    ),
+  loyalty: zod
+    .number()
+    .optional()
+    .describe(
+      "Hidden trait. 0..100 — grows with quest completion and faction work.",
+    ),
+  fearLevel: zod
+    .number()
+    .optional()
+    .describe("Hidden trait. 0..100 — grows with flight and defeats."),
+  fame: zod
+    .number()
+    .optional()
+    .describe("Public renown. -100..100 — visible to NPCs."),
 });
 
 /**
@@ -263,6 +383,36 @@ export const MoveLocationResponse = zod.object({
   isAlive: zod.boolean(),
   totalKills: zod.number(),
   totalDeaths: zod.number(),
+  archetype: zod
+    .string()
+    .nullish()
+    .describe(
+      "Hidden archetype label (e.g. brute, sneak, scholar). Null until psyche stabilizes.",
+    ),
+  cruelty: zod
+    .number()
+    .optional()
+    .describe("Hidden trait. 0..100 — increases with kills"),
+  curiosity: zod
+    .number()
+    .optional()
+    .describe(
+      "Hidden trait. 0..100 — grows with discovery and dialog exploration.",
+    ),
+  loyalty: zod
+    .number()
+    .optional()
+    .describe(
+      "Hidden trait. 0..100 — grows with quest completion and faction work.",
+    ),
+  fearLevel: zod
+    .number()
+    .optional()
+    .describe("Hidden trait. 0..100 — grows with flight and defeats."),
+  fame: zod
+    .number()
+    .optional()
+    .describe("Public renown. -100..100 — visible to NPCs."),
 });
 
 /**
@@ -288,6 +438,9 @@ export const GetActiveBattleResponse = zod.object({
           text: zod.string(),
           damage: zod.number().optional(),
           crit: zod.boolean().optional(),
+          statusKind: zod
+            .enum(["bleed", "poison", "burn", "stun", "fear"])
+            .nullish(),
         }),
       ),
       rewardSilver: zod.number(),
@@ -322,6 +475,9 @@ export const StartBattleResponse = zod.object({
       text: zod.string(),
       damage: zod.number().optional(),
       crit: zod.boolean().optional(),
+      statusKind: zod
+        .enum(["bleed", "poison", "burn", "stun", "fear"])
+        .nullish(),
     }),
   ),
   rewardSilver: zod.number(),
@@ -332,7 +488,7 @@ export const StartBattleResponse = zod.object({
  * @summary Perform an action in battle (attack/defend/flee)
  */
 export const BattleActionBody = zod.object({
-  action: zod.enum(["attack", "heavy", "defend", "flee"]),
+  action: zod.enum(["attack", "heavy", "quick", "defend", "dodge", "flee"]),
 });
 
 export const BattleActionResponse = zod.object({
@@ -353,6 +509,9 @@ export const BattleActionResponse = zod.object({
       text: zod.string(),
       damage: zod.number().optional(),
       crit: zod.boolean().optional(),
+      statusKind: zod
+        .enum(["bleed", "poison", "burn", "stun", "fear"])
+        .nullish(),
     }),
   ),
   rewardSilver: zod.number(),

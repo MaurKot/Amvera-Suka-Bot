@@ -4,24 +4,30 @@ import { eq } from "drizzle-orm";
 import { getEnemy, getLocation } from "./lore";
 import { applyExpAndLevelUp } from "./characterService";
 import { getEventConfig } from "./events";
+import { applyPsycheDelta, battleOutcomeDelta } from "./psycheService";
 
 // ─── P7 — Status effects ────────────────────────────────────────────────────
 // Effects live inside the battle log as a "status_state" entry that's
 // rewritten every round. This avoids a schema migration while remaining
 // authoritative — the latest such entry is the source of truth.
 
-export type StatusKind = "bleed" | "poison" | "stun" | "fear";
+// v2 — added `burn` for fire-themed sources (heavy crits, future spells).
+// Burn ticks for 4*stacks (between bleed and poison) and is the only DOT
+// affected by INT — `applyBurnTickBonus` boosts damage on caster's INT so
+// scholars/mages have a niche.
+export type StatusKind = "bleed" | "poison" | "burn" | "stun" | "fear";
 
 export interface StatusEffect {
   target: "player" | "enemy";
   kind: StatusKind;
-  stacks: number;       // 1+ — bleed/poison damage scales with stacks
+  stacks: number;       // 1+ — bleed/poison/burn damage scales with stacks
   durationLeft: number; // rounds remaining; ticks down each round
 }
 
 const STATUS_RU: Record<StatusKind, { name: string; verb: string }> = {
   bleed:  { name: "кровотечение", verb: "истекает кровью" },
   poison: { name: "яд",           verb: "содрогается от яда" },
+  burn:   { name: "ожог",         verb: "горит" },
   stun:   { name: "оглушение",    verb: "оглушён" },
   fear:   { name: "страх",        verb: "охвачен ужасом" },
 };
@@ -100,6 +106,17 @@ function tickEffects(
         text: `${side === "player" ? "Игрок" : "Враг"} ${STATUS_RU.poison.verb} (-${d}).`,
         damage: d,
       });
+    } else if (e.kind === "burn") {
+      // Burn — between bleed and poison; the visual punch of fire.
+      const d = 4 * e.stacks;
+      dotDamage += d;
+      ticks.push({
+        round: 0,
+        actor: "system",
+        action: "dot_burn",
+        text: `${side === "player" ? "Игрок" : "Враг"} ${STATUS_RU.burn.verb} (-${d}).`,
+        damage: d,
+      });
     } else if (e.kind === "stun") {
       stunned = true;
       ticks.push({
@@ -123,37 +140,52 @@ function tickEffects(
   return { remaining, dotDamage, stunned, fearMult, ticks };
 }
 
-function rollInflict(action: "attack" | "heavy", luck: number, intelligence: number): StatusEffect | null {
+function rollInflict(
+  action: "attack" | "heavy" | "quick",
+  luck: number,
+  intelligence: number,
+): StatusEffect | null {
+  // INT slightly extends inflicted DOT durations (scholar/mage niche).
+  const intDurBonus = intelligence >= 12 ? 1 : 0;
   // Heavy attacks have higher inflict chance and richer pool.
   if (action === "attack") {
     if (chance(0.12 + luck * 0.01)) {
-      return { target: "enemy", kind: "bleed", stacks: 1, durationLeft: 3 };
+      return { target: "enemy", kind: "bleed", stacks: 1, durationLeft: 3 + intDurBonus };
     }
   } else if (action === "heavy") {
     const r = Math.random();
-    const baseP = 0.30 + luck * 0.01 + intelligence * 0.005;
-    if (r < baseP * 0.40) return { target: "enemy", kind: "bleed",  stacks: 2, durationLeft: 3 };
-    if (r < baseP * 0.70) return { target: "enemy", kind: "poison", stacks: 1, durationLeft: 4 };
-    if (r < baseP * 0.85) return { target: "enemy", kind: "stun",   stacks: 1, durationLeft: 1 };
+    const baseP = 0.35 + luck * 0.01 + intelligence * 0.005;
+    if (r < baseP * 0.30) return { target: "enemy", kind: "bleed",  stacks: 2, durationLeft: 3 + intDurBonus };
+    if (r < baseP * 0.55) return { target: "enemy", kind: "poison", stacks: 1, durationLeft: 4 + intDurBonus };
+    if (r < baseP * 0.75) return { target: "enemy", kind: "burn",   stacks: 1, durationLeft: 3 + intDurBonus };
+    if (r < baseP * 0.90) return { target: "enemy", kind: "stun",   stacks: 1, durationLeft: 1 };
     if (r < baseP)        return { target: "enemy", kind: "fear",   stacks: 1, durationLeft: 2 };
+  } else if (action === "quick") {
+    // Quick attacks are nimble — small chance for a light bleed only.
+    if (chance(0.08 + luck * 0.005)) {
+      return { target: "enemy", kind: "bleed", stacks: 1, durationLeft: 2 };
+    }
   }
   return null;
 }
 
 function rollEnemyInflict(enemyLevel: number): StatusEffect | null {
   // Tougher enemies inflict more often.
-  const baseP = 0.10 + Math.min(0.20, enemyLevel * 0.02);
+  const baseP = 0.12 + Math.min(0.20, enemyLevel * 0.02);
   const r = Math.random();
-  if (r < baseP * 0.45) return { target: "player", kind: "bleed",  stacks: 1, durationLeft: 3 };
-  if (r < baseP * 0.75) return { target: "player", kind: "poison", stacks: 1, durationLeft: 3 };
-  if (r < baseP * 0.90) return { target: "player", kind: "fear",   stacks: 1, durationLeft: 2 };
+  if (r < baseP * 0.40) return { target: "player", kind: "bleed",  stacks: 1, durationLeft: 3 };
+  if (r < baseP * 0.65) return { target: "player", kind: "poison", stacks: 1, durationLeft: 3 };
+  if (r < baseP * 0.80) return { target: "player", kind: "burn",   stacks: 1, durationLeft: 2 };
+  if (r < baseP * 0.92) return { target: "player", kind: "fear",   stacks: 1, durationLeft: 2 };
   if (r < baseP)        return { target: "player", kind: "stun",   stacks: 1, durationLeft: 1 };
   return null;
 }
 
 // Initiative — agility vs enemy speed (level + 4). Higher roll acts first.
-function playerActsFirst(c: Character, enemyLevel: number): boolean {
-  const playerRoll = c.agility + rand(0, 5);
+// v2 — accepts an optional tempo bonus that the caller can pass for
+// AGI-flavoured actions like `quick` and `dodge`.
+function playerActsFirst(c: Character, enemyLevel: number, bonus = 0): boolean {
+  const playerRoll = c.agility + bonus + rand(0, 5);
   const enemyRoll = enemyLevel + 4 + rand(0, 5);
   return playerRoll >= enemyRoll;
 }
@@ -224,7 +256,7 @@ export interface ActionResult {
 
 export async function performAction(
   c: Character,
-  action: "attack" | "heavy" | "defend" | "flee",
+  action: "attack" | "heavy" | "quick" | "defend" | "dodge" | "flee",
 ): Promise<ActionResult> {
   const battle = await getActiveBattleFor(c.id);
   if (!battle) throw new Error("Активного боя нет");
@@ -236,6 +268,11 @@ export async function performAction(
   const lastNumericRound = [...log].reverse().find((l) => l.round > 0)?.round ?? 0;
   const round = lastNumericRound + 1;
   let effectsState = readState(log);
+  // v2 — `dodge` flag is consumed inside performEnemyTurn(): it grants a high
+  // miss chance (60% + AGI scaling) for the incoming enemy attack but does no
+  // damage of its own. Combined with low initiative it's the tempo move for
+  // AGI builds.
+  const dodging = action === "dodge";
 
   // ─── FLEE ────────────────────────────────────────────────────────────────
   if (action === "flee") {
@@ -262,7 +299,10 @@ export async function performAction(
     }
   } else {
     // ─── INITIATIVE — who strikes first this round ────────────────────────
-    const playerFirst = playerActsFirst(c, battle.enemyLevel);
+    // v2 — `quick` and `dodge` are AGI tempo moves: they bias the roll so
+    // a nimble character almost always wins initiative on these actions.
+    const tempoBoost = (action === "quick" || action === "dodge") ? 4 : 0;
+    const playerFirst = playerActsFirst(c, battle.enemyLevel, tempoBoost);
     log = [
       ...log,
       { round, actor: "system", action: "initiative",
@@ -292,13 +332,28 @@ export async function performAction(
           actionText = "";
           return -1;
         }
+        // STR carries the brunt; INT adds elemental sting that can also
+        // ignore a chunk of armour (END soak below).
         dmg = Math.round(dmg * 1.6) + Math.round(c.intelligence * 0.4);
         crit = chance(0.18 + c.luck * 0.01);
         if (crit) dmg = Math.round(dmg * 1.6);
         actionText = `${c.name} вкладывает ярость в удар. ${dmg} урона${crit ? " — критический!" : "."}`;
         inflicted = rollInflict("heavy", c.luck, c.intelligence);
+      } else if (action === "quick") {
+        // v2 — Quick attack: AGI-flavoured tempo strike. Half base STR, never
+        // crits hard, no mana cost, but virtually always lands first thanks
+        // to the +initiative bonus computed in playerActsFirst (see below).
+        dmg = Math.max(1, Math.round((c.strength + rand(0, 3)) * 0.55) + Math.floor(c.agility / 4));
+        crit = chance(0.06 + c.luck * 0.005);
+        if (crit) dmg = Math.round(dmg * 1.4);
+        actionText = `${c.name} проводит стремительный выпад. ${dmg} урона${crit ? " — точный!" : "."}`;
+        inflicted = rollInflict("quick", c.luck, c.intelligence);
       } else if (action === "defend") {
         actionText = `${c.name} занимает оборону, выжидая.`;
+        dmg = 0;
+      } else if (action === "dodge") {
+        // v2 — Dodge: pure defensive tempo, no damage dealt.
+        actionText = `${c.name} уходит в тень, готовый ускользнуть от удара.`;
         dmg = 0;
       }
       // Player fear penalty
@@ -328,9 +383,11 @@ export async function performAction(
         return false;
       }
 
-      // Finishing blow: enemy at low HP + offensive action
+      // Finishing blow: enemy at low HP + offensive action.
+      // v2 — quick attacks count as offensive too; an AGI build gets the
+      // dramatic execute when the enemy is bloodied.
       if (
-        (action === "attack" || action === "heavy") &&
+        (action === "attack" || action === "heavy" || action === "quick") &&
         enemyHp - baseDmg <= 0 &&
         enemyHp <= Math.max(8, Math.round(battle.enemyMaxHp * 0.20))
       ) {
@@ -369,10 +426,25 @@ export async function performAction(
         ];
         return false;
       }
+      // v2 — Dodge: roll a clean miss before damage is computed. AGI gives a
+      // diminishing-returns bonus on top of the 60% base. On miss, no damage
+      // and no status is applied — the perfect "AGI tempo" payoff.
+      if (dodging) {
+        const dodgeChance = Math.min(0.95, 0.60 + c.agility * 0.015);
+        if (chance(dodgeChance)) {
+          log = [
+            ...log,
+            { round, actor: "enemy", action: "missed",
+              text: `${battle.enemyName} атакует, но ${c.name} ускользает.` },
+          ];
+          return false;
+        }
+      }
       let enemyDmg = battle.enemyDamage + rand(-1, 3);
       if (action === "defend") enemyDmg = Math.max(1, Math.round(enemyDmg * 0.4));
       const enemyFear = effectsState.some((e) => e.target === "enemy" && e.kind === "fear");
       if (enemyFear) enemyDmg = Math.max(1, Math.round(enemyDmg * 0.6));
+      // END soak: more endurance = more raw absorption.
       enemyDmg = Math.max(0, enemyDmg - Math.floor(c.endurance / 4));
       charHp = Math.max(0, charHp - enemyDmg);
 
@@ -531,6 +603,17 @@ export async function performAction(
       .where(eq(characters.id, c.id))
       .returning();
     updatedChar = ucRows[0]!;
+
+    // ── v2 — psyche shift on battle end ─────────────────────────────────
+    // Detect a finishing blow by scanning the round's log for the
+    // `finisher` action so we don't have to thread state across closures.
+    const sawFinisher = log.some((l) => l.round === round && l.action === "finisher");
+    const psyche = battleOutcomeDelta({
+      outcome: status as "victory" | "defeat" | "fled",
+      enemyLevel: battle.enemyLevel,
+      finisher: sawFinisher,
+    });
+    updatedChar = await applyPsycheDelta(updatedChar, psyche);
   } else {
     const ucRows = await db
       .update(characters)

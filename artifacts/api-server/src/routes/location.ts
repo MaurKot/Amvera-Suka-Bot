@@ -78,6 +78,11 @@ router.get("/locations", async (req: Request, res: Response) => {
       requiresGuard: l.requiresGuard,
       destinationCityId: l.destinationCityId,
       activeEvents: eventsByLoc.get(l.id) ?? [],
+      // v2 — Map UX: zone danger ramp (0..5) and recommended level so the
+      // mini-map can colour-rank zones and the client can show "рекомендуется
+      // уровень N" on hover.
+      dangerLevel: l.dangerLevel ?? 0,
+      recommendedLevel: l.recommendedLevel ?? 1,
     })),
   );
 });

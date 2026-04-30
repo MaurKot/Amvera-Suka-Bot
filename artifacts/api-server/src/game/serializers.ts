@@ -31,6 +31,16 @@ export function serializeCharacter(c: Character) {
     totalKills: c.totalKills,
     totalDeaths: c.totalDeaths,
     lastRegenAt: c.lastRegenAt?.toISOString?.() ?? null,
+    // ── v2 — psyche surface ─────────────────────────────────────────────
+    // We expose only what the client needs to draw the psyche panel. The
+    // archetype is `null` until the player has clearly leaned into a style
+    // (psycheService.refreshArchetype) so the UI can keep it secret.
+    archetype: c.archetype ?? null,
+    cruelty: c.cruelty ?? 0,
+    curiosity: c.curiosity ?? 0,
+    loyalty: c.loyalty ?? 0,
+    fearLevel: c.fearLevel ?? 0,
+    fame: c.fame ?? 0,
   };
 }
 
@@ -52,6 +62,7 @@ export function serializeBattle(b: DBBattle) {
       text: string;
       damage?: number;
       crit?: boolean;
+      statusKind?: "bleed" | "poison" | "burn" | "stun" | "fear" | null;
     }>) ?? [],
     rewardSilver: b.rewardSilver,
     rewardExp: b.rewardExp,

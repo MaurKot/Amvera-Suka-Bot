@@ -55,6 +55,23 @@ export const characters = pgTable(
     totalKills: integer("total_kills").notNull().default(0),
     totalDeaths: integer("total_deaths").notNull().default(0),
 
+    // ── v2 — Character psyche (hidden traits) ─────────────────────────────
+    // Archetype is a derived label (brute / sneak / scholar / wanderer / loyal
+    // / coward) computed from the four hidden trait counters. It stays null
+    // until the player's behaviour clearly leans one way (server logic in
+    // psycheService.ts). All four traits are 0..100 and never visible to NPC
+    // dialog directly — instead they shape NPC fallback lines and reputation.
+    archetype: text("archetype"),
+    archetypeScores: jsonb("archetype_scores").notNull().default({}),
+    cruelty: integer("cruelty").notNull().default(0),
+    curiosity: integer("curiosity").notNull().default(0),
+    loyalty: integer("loyalty").notNull().default(0),
+    fearLevel: integer("fear_level").notNull().default(0),
+    // Fame is the *public* counterpart of the hidden traits, surfaced through
+    // every NPC interaction. -100..100. Grows with kills / quests, drops with
+    // flight and defeats.
+    fame: integer("fame").notNull().default(0),
+
     // Passive regen (replaces "rest at campfire" button).
     // We tick HP/Mana on every read of the character based on (now - lastRegenAt).
     lastRegenAt: timestamp("last_regen_at", { withTimezone: true }).defaultNow().notNull(),
@@ -210,6 +227,12 @@ export const locations = pgTable("locations", {
   cityLevel: integer("city_level").notNull().default(0), // 0 = wilderness, >0 = settled
   requiresGuard: boolean("requires_guard").notNull().default(false), // gated traversal
   destinationCityId: text("destination_city_id"), // for passages: where they lead
+  // ── v2 — Map UX: zone danger tier 0..5 (0 = safe city, 5 = lethal frontier).
+  // Drives the colour ramp on the mini-map and the NPC guard warnings.
+  // Seeded from `recommendedLevel` in lore.ts; AI-generated nodes inherit the
+  // average of their neighbours.
+  dangerLevel: integer("danger_level").notNull().default(0),
+  recommendedLevel: integer("recommended_level").notNull().default(1),
 });
 export type Location = typeof locations.$inferSelect;
 

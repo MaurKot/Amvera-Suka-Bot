@@ -12,6 +12,8 @@ export type BattleActionRequestAction =
 export const BattleActionRequestAction = {
   attack: "attack",
   heavy: "heavy",
+  quick: "quick",
   defend: "defend",
+  dodge: "dodge",
   flee: "flee",
 } as const;

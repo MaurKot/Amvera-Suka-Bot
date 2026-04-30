@@ -480,6 +480,15 @@ components:
         isAlive: { type: boolean }
         totalKills: { type: integer }
         totalDeaths: { type: integer }
+        archetype:
+          type: string
+          nullable: true
+          description: Hidden archetype label (e.g. brute, sneak, scholar). Null until psyche stabilizes.
+        cruelty: { type: integer, description: Hidden trait. 0..100 — increases with kills, dropping fame in safe factions. }
+        curiosity: { type: integer, description: Hidden trait. 0..100 — grows with discovery and dialog exploration. }
+        loyalty: { type: integer, description: Hidden trait. 0..100 — grows with quest completion and faction work. }
+        fearLevel: { type: integer, description: Hidden trait. 0..100 — grows with flight and defeats. }
+        fame: { type: integer, description: Public renown. -100..100 — visible to NPCs. }
 
     CharacterResponse:
       type: object
@@ -561,6 +570,10 @@ components:
         text: { type: string }
         damage: { type: integer }
         crit: { type: boolean }
+        statusKind:
+          type: string
+          enum: [bleed, poison, burn, stun, fear]
+          nullable: true
 
     BattleResponse:
       type: object
@@ -583,7 +596,7 @@ components:
       properties:
         action:
           type: string
-          enum: [attack, heavy, defend, flee]
+          enum: [attack, heavy, quick, defend, dodge, flee]
 
     NPCWithReputation:
       type: object

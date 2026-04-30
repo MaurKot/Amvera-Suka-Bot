@@ -13,6 +13,7 @@ export * from "./battleActionRequest";
 export * from "./battleActionRequestAction";
 export * from "./battleLogEntry";
 export * from "./battleLogEntryActor";
+export * from "./battleLogEntryStatusKind";
 export * from "./battleResponse";
 export * from "./battleStatus";
 export * from "./character";

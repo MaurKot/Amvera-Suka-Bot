@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { BattleLogEntryActor } from "./battleLogEntryActor";
+import type { BattleLogEntryStatusKind } from "./battleLogEntryStatusKind";
 
 export interface BattleLogEntry {
   round: number;
@@ -14,4 +15,5 @@ export interface BattleLogEntry {
   text: string;
   damage?: number;
   crit?: boolean;
+  statusKind?: BattleLogEntryStatusKind;
 }

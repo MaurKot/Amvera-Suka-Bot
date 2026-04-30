@@ -42,6 +42,19 @@ const SVG_H = 240;
 const PAD = 18;
 const project = (n: number, max: number) => PAD + (n / 100) * (max - PAD * 2);
 
+// v2 — Player-centred view: how far from the centre (in % of viewport) we
+// pan to put the current location in the middle. Limits keep the world
+// from drifting off-screen entirely when the player is at a corner.
+const PAN_LIMIT_X = 28;
+const PAN_LIMIT_Y = 28;
+
+// v2 — Danger ramp: maps locations.dangerLevel (0..5) to CSS classes
+// declared in index.css. Kept here (not in CSS) so we can drive `<text>`
+// fills with the *border* tint without duplicating the palette.
+const DANGER_FILL = ["#1d2a1d", "#1f2633", "#2c2b1c", "#2e2114", "#2e1717", "#2a1326"];
+const DANGER_STROKE = ["#2c4a30", "#3a455c", "#6b5a26", "#93611c", "#a83434", "#8b2c8b"];
+const DANGER_LABEL = ["безопасно", "тихо", "тревожно", "опасно", "смертельно", "проклято"];
+
 export function WorldMap() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -277,7 +290,7 @@ export function WorldMap() {
   );
 }
 
-// ── Mini-map ──────────────────────────────────────────────────────────────
+// ── Mini-map (v2 — player-centred, danger-coloured) ──────────────────────
 function MiniMap({
   locations,
   selected,
@@ -289,7 +302,7 @@ function MiniMap({
 }) {
   const byId = useMemo(() => new Map(locations.map((l) => [l.id, l])), [locations]);
 
-  // Edges (deduped)
+  // Edges (deduped) — drawn once underneath nodes.
   const edges = useMemo(() => {
     const seen = new Set<string>();
     const out: { a: LocationDTO; b: LocationDTO }[] = [];
@@ -305,105 +318,163 @@ function MiniMap({
     return out;
   }, [locations, byId]);
 
+  // v2 — Player-centred pan: shift the viewBox so the current location sits
+  // at the visual centre. We clamp the offset so distant corners of the
+  // world don't fall completely outside; players can still see neighbours.
+  const here = locations.find((l) => l.isCurrent);
+  const panX = here ? Math.max(-PAN_LIMIT_X, Math.min(PAN_LIMIT_X, 50 - here.coordX)) : 0;
+  const panY = here ? Math.max(-PAN_LIMIT_Y, Math.min(PAN_LIMIT_Y, 50 - here.coordY)) : 0;
+  const projX = (n: number) => project(n + panX, SVG_W);
+  const projY = (n: number) => project(n + panY, SVG_H);
+
   if (locations.length === 0) return null;
 
   return (
-    <Card className="bg-card/60 border-border/40 backdrop-blur">
-      <CardContent className="p-2">
-        <svg
-          viewBox={`0 0 ${SVG_W} ${SVG_H}`}
-          className="w-full h-auto"
-          role="img"
-          aria-label="Карта Альтеры"
-          data-testid="mini-map"
-        >
-          {/* Faint grid */}
-          <defs>
-            <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="hsl(36 38% 92% / 0.04)" strokeWidth="1" />
-            </pattern>
-          </defs>
-          <rect width={SVG_W} height={SVG_H} fill="url(#grid)" />
+    <div className="surface-2 rounded-md p-2">
+      <svg
+        viewBox={`0 0 ${SVG_W} ${SVG_H}`}
+        className="w-full h-auto"
+        role="img"
+        aria-label="Карта Альтеры"
+        data-testid="mini-map"
+      >
+        {/* Background gradient + grid + filters */}
+        <defs>
+          <radialGradient id="vignette" cx="50%" cy="50%" r="60%">
+            <stop offset="0%" stopColor="#1f2633" stopOpacity="0" />
+            <stop offset="100%" stopColor="#0f1115" stopOpacity="0.85" />
+          </radialGradient>
+          <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#aab1c0" strokeOpacity="0.04" strokeWidth="1" />
+          </pattern>
+          {/* v2 — Frontier glow filter: a soft amber halo behind un-discovered
+              border nodes, telling the eye where the map opens up next. */}
+          <filter id="frontierGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="2.4" result="b" />
+            <feMerge>
+              <feMergeNode in="b" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <rect width={SVG_W} height={SVG_H} fill="#0f1115" />
+        <rect width={SVG_W} height={SVG_H} fill="url(#grid)" />
 
-          {/* Edges */}
-          {edges.map(({ a, b }) => {
-            const x1 = project(a.coordX, SVG_W);
-            const y1 = project(a.coordY, SVG_H);
-            const x2 = project(b.coordX, SVG_W);
-            const y2 = project(b.coordY, SVG_H);
-            const isLive = a.isCurrent || b.isCurrent;
-            return (
-              <line
-                key={`${a.id}-${b.id}`}
-                x1={x1}
-                y1={y1}
-                x2={x2}
-                y2={y2}
-                stroke={isLive ? "hsl(43 70% 62% / 0.7)" : "hsl(36 38% 92% / 0.18)"}
-                strokeWidth={isLive ? 1.6 : 1}
-                strokeDasharray={a.isDiscovered && b.isDiscovered ? undefined : "3 3"}
-              />
-            );
-          })}
+        {/* v2 — Danger zone halos (drawn first so edges/nodes layer above).
+            Each known node gets a soft coloured disk hinting at its danger
+            tier. Undiscovered nodes are not haloed — secrecy first. */}
+        {locations.map((l) => {
+          if (!l.isDiscovered) return null;
+          const cx = projX(l.coordX);
+          const cy = projY(l.coordY);
+          const tier = Math.max(0, Math.min(5, l.dangerLevel ?? 0));
+          return (
+            <circle
+              key={`halo-${l.id}`}
+              cx={cx}
+              cy={cy}
+              r={16}
+              fill={DANGER_FILL[tier]}
+              fillOpacity={0.55}
+              stroke={DANGER_STROKE[tier]}
+              strokeOpacity={0.40}
+              strokeWidth={0.8}
+            />
+          );
+        })}
 
-          {/* Nodes */}
-          {locations.map((l) => {
-            const cx = project(l.coordX, SVG_W);
-            const cy = project(l.coordY, SVG_H);
-            const isSel = selected === l.id;
-            const fill = l.isCurrent
-              ? "hsl(43 70% 62%)"
-              : l.isDiscovered
-              ? "hsl(36 38% 92%)"
-              : "hsl(240 5% 35%)";
-            const eventCount = l.activeEvents?.length ?? 0;
-            return (
-              <g
-                key={l.id}
-                onClick={() => onSelect(l.id)}
-                className="cursor-pointer"
-                data-testid={`map-node-${l.id}`}
+        {/* Edges */}
+        {edges.map(({ a, b }) => {
+          const x1 = projX(a.coordX);
+          const y1 = projY(a.coordY);
+          const x2 = projX(b.coordX);
+          const y2 = projY(b.coordY);
+          const isLive = a.isCurrent || b.isCurrent;
+          return (
+            <line
+              key={`${a.id}-${b.id}`}
+              x1={x1}
+              y1={y1}
+              x2={x2}
+              y2={y2}
+              stroke={isLive ? "#e6c769" : "#aab1c0"}
+              strokeOpacity={isLive ? 0.7 : 0.18}
+              strokeWidth={isLive ? 1.6 : 1}
+              strokeDasharray={a.isDiscovered && b.isDiscovered ? undefined : "3 3"}
+            />
+          );
+        })}
+
+        {/* Nodes */}
+        {locations.map((l) => {
+          const cx = projX(l.coordX);
+          const cy = projY(l.coordY);
+          const isSel = selected === l.id;
+          const tier = Math.max(0, Math.min(5, l.dangerLevel ?? 0));
+          // v2 — Node fill ranks: current = gold, discovered = danger-tinted
+          // outline, unknown = ash. Frontier nodes carry the glow filter.
+          const fill = l.isCurrent
+            ? "#e6c769"
+            : l.isDiscovered
+            ? DANGER_STROKE[tier]
+            : "#3a3f4a";
+          const eventCount = l.activeEvents?.length ?? 0;
+          return (
+            <g
+              key={l.id}
+              onClick={() => onSelect(l.id)}
+              className="cursor-pointer"
+              data-testid={`map-node-${l.id}`}
+              filter={l.isFrontier && !l.isCurrent ? "url(#frontierGlow)" : undefined}
+            >
+              {l.isCurrent && (
+                <circle cx={cx} cy={cy} r={11} fill="#e6c769" fillOpacity={0.18}>
+                  <animate attributeName="r" values="9;13;9" dur="2.4s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="0.30;0.05;0.30" dur="2.4s" repeatCount="indefinite" />
+                </circle>
+              )}
+              {l.isFrontier && !l.isCurrent && (
+                <circle cx={cx} cy={cy} r={9} fill="#e6c769" fillOpacity={0.12}>
+                  <animate attributeName="opacity" values="0.20;0.06;0.20" dur="3.2s" repeatCount="indefinite" />
+                </circle>
+              )}
+              {isSel && (
+                <circle cx={cx} cy={cy} r={10} fill="none" stroke="#c79bd9" strokeWidth={1.4} />
+              )}
+              <circle cx={cx} cy={cy} r={5.2} fill={fill} stroke="#0f1115" strokeWidth={1.2} />
+              {eventCount > 0 && (
+                <circle cx={cx + 5} cy={cy - 5} r={2.6} fill="#e36a6a" stroke="#0f1115" strokeWidth={1} />
+              )}
+              {l.isReachable && !l.isCurrent && (
+                <circle cx={cx} cy={cy} r={7} fill="none" stroke="#e6c769" strokeOpacity={0.5} strokeWidth={1} strokeDasharray="2 2" />
+              )}
+              <text
+                x={cx}
+                y={cy + 14}
+                textAnchor="middle"
+                fontSize="8"
+                fill={l.isDiscovered ? "#e6e3da" : "#6b7384"}
+                fontFamily="Plus Jakarta Sans, sans-serif"
+                fontWeight={l.isCurrent ? 700 : 500}
+                style={{ paintOrder: "stroke", stroke: "#0f1115", strokeWidth: 2.5 }}
               >
-                {l.isCurrent && (
-                  <circle cx={cx} cy={cy} r={11} fill="hsl(43 70% 62% / 0.18)">
-                    <animate attributeName="r" values="9;13;9" dur="2.4s" repeatCount="indefinite" />
-                    <animate attributeName="opacity" values="0.25;0.05;0.25" dur="2.4s" repeatCount="indefinite" />
-                  </circle>
-                )}
-                {isSel && (
-                  <circle cx={cx} cy={cy} r={10} fill="none" stroke="hsl(290 60% 70%)" strokeWidth={1.4} />
-                )}
-                <circle cx={cx} cy={cy} r={5.2} fill={fill} stroke="hsl(240 12% 5%)" strokeWidth={1.2} />
-                {eventCount > 0 && (
-                  <circle cx={cx + 5} cy={cy - 5} r={2.6} fill="hsl(0 75% 56%)" stroke="hsl(240 12% 5%)" strokeWidth={1} />
-                )}
-                {l.isReachable && !l.isCurrent && (
-                  <circle cx={cx} cy={cy} r={7} fill="none" stroke="hsl(43 70% 62% / 0.5)" strokeWidth={1} strokeDasharray="2 2" />
-                )}
-                <text
-                  x={cx}
-                  y={cy + 14}
-                  textAnchor="middle"
-                  fontSize="8"
-                  fill={l.isDiscovered ? "hsl(36 38% 92%)" : "hsl(240 8% 60%)"}
-                  fontFamily="Plus Jakarta Sans, sans-serif"
-                  fontWeight={l.isCurrent ? 700 : 500}
-                  style={{ paintOrder: "stroke", stroke: "hsl(240 12% 5%)", strokeWidth: 2.5 }}
-                >
-                  {l.isDiscovered ? l.name : "???"}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
-        <div className="px-2 pt-1 pb-1.5 flex items-center gap-3 text-[10px] text-muted-foreground uppercase tracking-wider">
-          <Legend color="hsl(43 70% 62%)" label="Здесь" />
-          <Legend color="hsl(36 38% 92%)" label="Открыто" />
-          <Legend color="hsl(240 5% 35%)" label="Скрыто" />
-          <Legend color="hsl(0 75% 56%)" label="Событие" />
-        </div>
-      </CardContent>
-    </Card>
+                {l.isDiscovered ? l.name : "???"}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* Vignette on top to focus eye on centre */}
+        <rect width={SVG_W} height={SVG_H} fill="url(#vignette)" pointerEvents="none" />
+      </svg>
+      <div className="px-2 pt-1 pb-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-secondary-soft uppercase tracking-wider">
+        <Legend color="#e6c769" label="Здесь" />
+        <Legend color={DANGER_STROKE[1]} label="Тихо" />
+        <Legend color={DANGER_STROKE[3]} label="Опасно" />
+        <Legend color={DANGER_STROKE[5]} label="Проклято" />
+        <Legend color="#3a3f4a" label="Скрыто" />
+      </div>
+    </div>
   );
 }
 
@@ -496,9 +567,20 @@ function LocationCard({
                   <ShieldAlert className="h-3 w-3" /> Под охраной
                 </Badge>
               )}
-              {loc.cityLevel > 0 && (
-                <Badge variant="outline" className="border-primary/30 text-primary/90 text-[10px] uppercase no-shadow">
-                  Ур. {loc.cityLevel}
+              {/* v2 — Danger tier chip. Always shown so the player parses
+                  zone risk before opening the card. Colour mirrors the map
+                  ramp; safe locations are intentionally unlabelled. */}
+              {!loc.isSafe && (
+                <Badge
+                  variant="outline"
+                  className="text-[10px] uppercase no-shadow"
+                  style={{
+                    borderColor: DANGER_STROKE[Math.max(0, Math.min(5, loc.dangerLevel ?? 0))],
+                    color: DANGER_STROKE[Math.max(0, Math.min(5, loc.dangerLevel ?? 0))],
+                  }}
+                  data-testid={`danger-${loc.id}`}
+                >
+                  {DANGER_LABEL[Math.max(0, Math.min(5, loc.dangerLevel ?? 0))]} · ур. {loc.recommendedLevel}
                 </Badge>
               )}
             </div>

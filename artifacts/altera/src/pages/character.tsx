@@ -194,7 +194,101 @@ export function CharacterSheet() {
             </CardContent>
           </Card>
         </div>
+
+        {/* v2 — Психика. The hidden traits panel. We *do* show the bars, so
+            the player has a faint sense of who their character is becoming,
+            but the dominant trait only gets a name (Архетип) once it clearly
+            wins. Fame is the public counterpart and always visible. */}
+        <PsychePanel character={character} />
       </motion.div>
     </Layout>
+  );
+}
+
+// ─── v2 — Psyche panel ────────────────────────────────────────────────────
+interface PsycheCharacter {
+  archetype?: string | null;
+  cruelty?: number;
+  curiosity?: number;
+  loyalty?: number;
+  fearLevel?: number;
+  fame?: number;
+}
+
+function PsychePanel({ character }: { character: PsycheCharacter }) {
+  const traits = [
+    { key: "cruelty",   label: "Жестокость", value: character.cruelty   ?? 0, hint: "Растёт от добиваний и пролитой крови", color: "bg-red-500/70" },
+    { key: "curiosity", label: "Любопытство", value: character.curiosity ?? 0, hint: "Растёт от диалогов и открытий", color: "bg-blue-500/70" },
+    { key: "loyalty",   label: "Верность",    value: character.loyalty   ?? 0, hint: "Растёт от выполненных обещаний", color: "bg-amber-500/70" },
+    { key: "fearLevel", label: "Страх",       value: character.fearLevel ?? 0, hint: "Растёт от поражений и бегства", color: "bg-violet-500/70" },
+  ];
+  const fame = character.fame ?? 0;
+  return (
+    <Card className="bg-black/20 border-white/5" data-testid="psyche-panel">
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="font-serif text-xl flex items-center gap-2">
+          <Brain className="w-5 h-5 text-secondary-foreground opacity-70" />
+          Психика
+        </CardTitle>
+        {character.archetype ? (
+          <Badge
+            variant="outline"
+            className="border-primary/40 text-primary font-serif glow-important"
+            data-testid="archetype-badge"
+          >
+            {character.archetype}
+          </Badge>
+        ) : (
+          <span className="text-[11px] text-muted-foreground italic">архетип ещё не сложился</span>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {traits.map((t) => (
+            <div key={t.key} className="surface-3 rounded p-3" data-testid={`psyche-${t.key}`}>
+              <div className="flex justify-between text-sm font-mono">
+                <span className="text-secondary-soft">{t.label}</span>
+                <span className="text-primary-soft">{t.value}</span>
+              </div>
+              <div className="mt-1.5 h-1.5 w-full bg-black/60 rounded-full overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.min(100, t.value)}%` }}
+                  transition={{ duration: 0.4 }}
+                  className={`h-full ${t.color}`}
+                />
+              </div>
+              <p className="text-[11px] text-muted-soft italic mt-1.5 leading-snug">{t.hint}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Fame — public renown, can go negative. Single bar centred at 0. */}
+        <div className="surface-3 rounded p-3" data-testid="psyche-fame">
+          <div className="flex justify-between text-sm font-mono">
+            <span className="text-secondary-soft">Слава</span>
+            <span className={fame >= 0 ? "text-primary-soft" : "text-destructive"}>
+              {fame > 0 ? `+${fame}` : fame}
+            </span>
+          </div>
+          <div className="mt-1.5 relative h-1.5 w-full bg-black/60 rounded-full overflow-hidden">
+            {/* Centre tick */}
+            <div className="absolute left-1/2 top-0 bottom-0 w-px bg-white/30" />
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{
+                width: `${Math.min(50, Math.abs(fame) / 2)}%`,
+                left: fame >= 0 ? "50%" : `${50 - Math.min(50, Math.abs(fame) / 2)}%`,
+              }}
+              transition={{ duration: 0.4 }}
+              className={`absolute top-0 h-full ${fame >= 0 ? "bg-primary/70" : "bg-destructive/70"}`}
+            />
+          </div>
+          <p className="text-[11px] text-muted-soft italic mt-1.5 leading-snug">
+            Что о тебе говорят в тавернах. От -100 (изгой) до +100 (легенда).
+          </p>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

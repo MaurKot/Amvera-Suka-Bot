@@ -238,4 +238,46 @@
     content: "» ";
     opacity: 0.65;
   }
+
+  /* ── v2 — 3-layer dark surfaces ─────────────────────────────────────────
+     Per design audit: every screen must read as exactly three depth tiers,
+     darkest at the back, lightest at the front. Use the utilities directly
+     so the hierarchy stays consistent across pages. Borders are sized so
+     adjacent layers always have a visible seam without needing a glow. */
+  .surface-1 { background-color: #0f1115; }
+  .surface-2 {
+    background-color: #161a22;
+    border: 1px solid #1f2633;
+  }
+  .surface-3 {
+    background-color: #1f2633;
+    border: 1px solid #2a3242;
+  }
+
+  /* Text hierarchy — primary / secondary / muted. Reserved for v2 panels. */
+  .text-primary-soft   { color: #e6e3da; }
+  .text-secondary-soft { color: #aab1c0; }
+  .text-muted-soft     { color: #6b7384; }
+
+  /* Important glow — apply ONLY to "the one thing that matters" on a screen
+     (e.g. the active enemy nameplate, the discovered frontier ring). Never
+     blanket-apply; the design intent is that glow tells the eye where to go. */
+  .glow-important {
+    box-shadow:
+      0 0 0 1px hsl(43 70% 62% / 0.35),
+      0 0 16px hsl(43 70% 62% / 0.25);
+  }
+  .glow-danger {
+    box-shadow:
+      0 0 0 1px hsl(0 75% 56% / 0.40),
+      0 0 16px hsl(0 75% 56% / 0.28);
+  }
+
+  /* ── v2 — Map zone danger ramp (0..5) ────────────────────────────────── */
+  .zone-d0 { fill: #1d2a1d; stroke: #2c4a30; }
+  .zone-d1 { fill: #1f2633; stroke: #3a455c; }
+  .zone-d2 { fill: #2c2b1c; stroke: #6b5a26; }
+  .zone-d3 { fill: #2e2114; stroke: #93611c; }
+  .zone-d4 { fill: #2e1717; stroke: #a83434; }
+  .zone-d5 { fill: #2a1326; stroke: #8b2c8b; }
 }

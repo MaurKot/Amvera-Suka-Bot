@@ -60,6 +60,9 @@ export interface LocationDTO {
   cityLevel: number;
   requiresGuard: boolean;
   destinationCityId: string | null;
+  // v2 — Map UX: 0..5 colour ramp from safe (0) to lethal frontier (5).
+  dangerLevel: number;
+  recommendedLevel: number;
 }
 
 export const listLocations = () => request<LocationDTO[]>("/locations");

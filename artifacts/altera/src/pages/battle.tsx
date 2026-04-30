@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sword, Shield, Wind, Skull, Heart, Map as MapIcon } from "lucide-react";
+import { Sword, Shield, Wind, Skull, Heart, Map as MapIcon, Zap, Eye } from "lucide-react";
 import {
   useGetActiveBattle,
   useGetLore,
@@ -269,8 +269,10 @@ export function BattleScreen() {
           </AnimatePresence>
         </div>
 
-        {/* Actions: 2x2 grid on mobile, larger tap targets */}
-        <div className="grid grid-cols-2 gap-2 sticky bottom-20 sm:static">
+        {/* v2 — 3x2 action grid: STR (Тяжёлая), default (Атака), AGI (Быстрая)
+            on the top row; defensive (Защита), AGI defensive (Уворот), and
+            escape (Бегство) on the bottom. Each tone hints at the role. */}
+        <div className="grid grid-cols-3 gap-2 sticky bottom-20 sm:static">
           <ActionButton
             label="Атака"
             icon={Sword}
@@ -288,11 +290,27 @@ export function BattleScreen() {
             tone="destructive"
           />
           <ActionButton
+            label="Быстрая"
+            icon={Zap}
+            disabled={battleAction.isPending}
+            onClick={() => handleAction(BattleActionRequestAction.quick)}
+            testId="action-quick"
+            tone="primary"
+          />
+          <ActionButton
             label="Защита"
             icon={Shield}
             disabled={battleAction.isPending}
             onClick={() => handleAction(BattleActionRequestAction.defend)}
             testId="action-defend"
+            tone="secondary"
+          />
+          <ActionButton
+            label="Уворот"
+            icon={Eye}
+            disabled={battleAction.isPending}
+            onClick={() => handleAction(BattleActionRequestAction.dodge)}
+            testId="action-dodge"
             tone="secondary"
           />
           <ActionButton

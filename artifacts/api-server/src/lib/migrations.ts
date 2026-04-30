@@ -130,6 +130,19 @@ export async function runStartupMigrations(log: Logger): Promise<void> {
     ["locations.city_level", sql`ALTER TABLE locations ADD COLUMN IF NOT EXISTS city_level integer NOT NULL DEFAULT 0`],
     ["locations.requires_guard", sql`ALTER TABLE locations ADD COLUMN IF NOT EXISTS requires_guard boolean NOT NULL DEFAULT false`],
     ["locations.destination_city_id", sql`ALTER TABLE locations ADD COLUMN IF NOT EXISTS destination_city_id text`],
+
+    // ── v2 — Map UX: zone danger ramp + recommended level ────────────────
+    ["locations.danger_level", sql`ALTER TABLE locations ADD COLUMN IF NOT EXISTS danger_level integer NOT NULL DEFAULT 0`],
+    ["locations.recommended_level", sql`ALTER TABLE locations ADD COLUMN IF NOT EXISTS recommended_level integer NOT NULL DEFAULT 1`],
+
+    // ── v2 — Character psyche (hidden traits + public fame) ──────────────
+    ["characters.archetype", sql`ALTER TABLE characters ADD COLUMN IF NOT EXISTS archetype text`],
+    ["characters.archetype_scores", sql`ALTER TABLE characters ADD COLUMN IF NOT EXISTS archetype_scores jsonb NOT NULL DEFAULT '{}'::jsonb`],
+    ["characters.cruelty", sql`ALTER TABLE characters ADD COLUMN IF NOT EXISTS cruelty integer NOT NULL DEFAULT 0`],
+    ["characters.curiosity", sql`ALTER TABLE characters ADD COLUMN IF NOT EXISTS curiosity integer NOT NULL DEFAULT 0`],
+    ["characters.loyalty", sql`ALTER TABLE characters ADD COLUMN IF NOT EXISTS loyalty integer NOT NULL DEFAULT 0`],
+    ["characters.fear_level", sql`ALTER TABLE characters ADD COLUMN IF NOT EXISTS fear_level integer NOT NULL DEFAULT 0`],
+    ["characters.fame", sql`ALTER TABLE characters ADD COLUMN IF NOT EXISTS fame integer NOT NULL DEFAULT 0`],
   ];
 
   for (const [name, q] of steps) {

@@ -142,6 +142,18 @@ export async function seedWorldIfEmpty(log: Logger): Promise<void> {
   // Locations
   const existingLocs = await db.select({ id: locations.id }).from(locations);
   const haveLoc = new Set(existingLocs.map((l) => l.id));
+  // v2 — derive a 0..5 danger tier from `recommendedLevel` so the map UX can
+  // colour-rank zones consistently. Safe = 0, lethal frontier = 5.
+  const dangerOf = (l: (typeof LOCATIONS)[number]): number => {
+    if (l.isSafe) return 0;
+    const lvl = l.recommendedLevel ?? 1;
+    if (lvl <= 1) return 1;
+    if (lvl <= 2) return 2;
+    if (lvl <= 3) return 3;
+    if (lvl <= 4) return 4;
+    return 5;
+  };
+
   const newLocs = LOCATIONS.filter((l) => !haveLoc.has(l.id)).map((l) => ({
     id: l.id,
     name: l.name,
@@ -158,6 +170,8 @@ export async function seedWorldIfEmpty(log: Logger): Promise<void> {
     cityLevel: l.cityLevel ?? 0,
     requiresGuard: l.requiresGuard ?? false,
     destinationCityId: l.destinationCityId ?? null,
+    dangerLevel: dangerOf(l),
+    recommendedLevel: l.recommendedLevel ?? 1,
   }));
   if (newLocs.length > 0) {
     await db.insert(locations).values(newLocs);
@@ -184,6 +198,8 @@ export async function seedWorldIfEmpty(log: Logger): Promise<void> {
         cityLevel: l.cityLevel ?? 0,
         requiresGuard: l.requiresGuard ?? false,
         destinationCityId: l.destinationCityId ?? null,
+        dangerLevel: dangerOf(l),
+        recommendedLevel: l.recommendedLevel ?? 1,
       })
       .where(eq(locations.id, l.id));
   }

@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { TriangleAlert as AlertTriangle, Heart, Droplets, Coins } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BottomNav } from "@/components/bottom-nav";
-import { listLocations, type LocationEventBadge } from "@/lib/api";
+import { listLocations, type LocationEventBadge, type RegenRate } from "@/lib/api";
 
 export function Layout({
   children,
@@ -55,7 +55,7 @@ export function Layout({
                 <Droplets className="h-3 w-3" /> {character.mana}/{character.maxMana}
               </span>
               {(() => {
-                const regen = (character as unknown as { regen?: { hpPerSec: number; zone: "safe" | "wilderness" | "dangerous" } }).regen;
+                const regen = (character as unknown as { regen?: RegenRate }).regen;
                 if (!regen) return null;
                 const tone =
                   regen.zone === "safe"

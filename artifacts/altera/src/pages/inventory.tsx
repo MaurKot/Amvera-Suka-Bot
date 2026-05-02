@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { motion } from "framer-motion";
-import { Shield, Sword, Package, Ghost } from "lucide-react";
+import { Shield, Package, Ghost } from "lucide-react";
 
 export function Inventory() {
   const queryClient = useQueryClient();
@@ -35,12 +35,21 @@ export function Inventory() {
     });
   };
 
-  const getRarityColor = (rarity: string) => {
+  const getRarityTextColor = (rarity: string) => {
     switch(rarity) {
-      case 'legendary': return 'text-yellow-500 border-yellow-500/30';
-      case 'rare': return 'text-purple-400 border-purple-400/30';
-      case 'uncommon': return 'text-blue-400 border-blue-400/30';
-      default: return 'text-muted-foreground border-white/10';
+      case 'legendary': return 'text-yellow-500';
+      case 'rare': return 'text-purple-400';
+      case 'uncommon': return 'text-blue-400';
+      default: return 'text-muted-foreground';
+    }
+  };
+
+  const getRarityBorderColor = (rarity: string) => {
+    switch(rarity) {
+      case 'legendary': return 'border-yellow-500/30';
+      case 'rare': return 'border-purple-400/30';
+      case 'uncommon': return 'border-blue-400/30';
+      default: return 'border-border/40';
     }
   };
 
@@ -91,10 +100,10 @@ export function Inventory() {
                       <CardContent className="p-4">
                         <div className="flex justify-between items-start mb-2">
                           <div>
-                            <h4 className={`font-serif text-lg ${getRarityColor(item.rarity).split(' ')[0]}`}>
+                            <h4 className={`font-serif text-lg ${getRarityTextColor(item.rarity)}`}>
                               {item.name}
                             </h4>
-                            <Badge variant="outline" className={`mt-1 font-mono text-[10px] uppercase tracking-widest ${getRarityColor(item.rarity)}`}>
+                            <Badge variant="outline" className={`mt-1 font-mono text-[10px] uppercase tracking-widest ${getRarityTextColor(item.rarity)} ${getRarityBorderColor(item.rarity)}`}>
                               {getRarityLabel(item.rarity)}
                             </Badge>
                           </div>
@@ -145,10 +154,10 @@ export function Inventory() {
                       <CardContent className="p-4">
                         <div className="flex justify-between items-start mb-2">
                           <div>
-                            <h4 className={`font-serif text-lg ${getRarityColor(item.rarity).split(' ')[0]}`}>
+                            <h4 className={`font-serif text-lg ${getRarityTextColor(item.rarity)}`}>
                               {item.name} {item.quantity > 1 ? <span className="text-muted-foreground text-sm font-mono opacity-50">x{item.quantity}</span> : ''}
                             </h4>
-                            <Badge variant="outline" className={`mt-1 font-mono text-[10px] uppercase tracking-widest ${getRarityColor(item.rarity)}`}>
+                            <Badge variant="outline" className={`mt-1 font-mono text-[10px] uppercase tracking-widest ${getRarityTextColor(item.rarity)} ${getRarityBorderColor(item.rarity)}`}>
                               {getRarityLabel(item.rarity)}
                             </Badge>
                           </div>

@@ -35,8 +35,8 @@ export function useRealtimeEvents(handler: (ev: AlteraEvent) => void): void {
         try {
           const data = JSON.parse(e.data) as AlteraEvent;
           handlerRef.current(data);
-        } catch {
-          /* ignore */
+        } catch (err) {
+          if (import.meta.env.DEV) console.warn("[realtime] Failed to parse SSE message:", err);
         }
       };
       // Named events
@@ -55,8 +55,8 @@ export function useRealtimeEvents(handler: (ev: AlteraEvent) => void): void {
           try {
             const data = JSON.parse((e as MessageEvent).data) as AlteraEvent;
             handlerRef.current(data);
-          } catch {
-            /* ignore */
+          } catch (err) {
+            if (import.meta.env.DEV) console.warn(`[realtime] Failed to parse named event "${n}":`, err);
           }
         });
       }

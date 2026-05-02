@@ -10,19 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Compass,
-  Footprints,
-  Lock,
-  MapPin,
-  Shield,
-  ShieldAlert,
-  Sparkles,
-  Star,
-  Swords,
-  Wand2,
-  AlertTriangle,
-} from "lucide-react";
+import { Compass, Footprints, Lock, MapPin, Shield, ShieldAlert, Sparkles, Star, Swords, Wand as Wand2, TriangleAlert as AlertTriangle } from "lucide-react";
 import {
   listLocations,
   visitLocation,

@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Skull, Heart, Zap, Sparkles, Shield, Sword, Eye, Brain, Plus, Sprout, Ghost, Flame, Star } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-
-interface RegenRate { hpPerSec: number; manaPerSec: number; zone: "safe" | "wilderness" | "dangerous" }
+import { cn } from "@/lib/utils";
+import type { RegenRate } from "@/lib/api";
+import { useMemo } from "react";
 
 export function CharacterSheet() {
   const queryClient = useQueryClient();
@@ -43,13 +44,13 @@ export function CharacterSheet() {
     });
   };
 
-  const stats = [
+  const stats = useMemo(() => [
     { key: AllocateStatRequestStat.strength, label: "Сила", value: character.strength, icon: Sword, color: "text-red-400" },
     { key: AllocateStatRequestStat.agility, label: "Ловкость", value: character.agility, icon: Sparkles, color: "text-green-400" },
     { key: AllocateStatRequestStat.intelligence, label: "Интеллект", value: character.intelligence, icon: Brain, color: "text-blue-400" },
     { key: AllocateStatRequestStat.endurance, label: "Выносливость", value: character.endurance, icon: Shield, color: "text-orange-400" },
     { key: AllocateStatRequestStat.intuition, label: "Интуиция", value: character.intuition, icon: Eye, color: "text-purple-400" },
-  ];
+  ], [character.strength, character.agility, character.intelligence, character.endurance, character.intuition]);
 
   return (
     <Layout>
@@ -192,10 +193,6 @@ function VitalBar({ label, icon: Icon, value, max, color, valueClass }: {
       </div>
     </div>
   );
-}
-
-function cn(...args: (string | undefined | false)[]) {
-  return args.filter(Boolean).join(" ");
 }
 
 // ─── Psyche panel ────────────────────────────────────────────────────

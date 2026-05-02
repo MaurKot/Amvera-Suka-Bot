@@ -2,6 +2,12 @@
 // We use fetch directly so the global fetch patch (Telegram initData header)
 // applies automatically.
 
+export interface RegenRate {
+  hpPerSec: number;
+  manaPerSec: number;
+  zone: "safe" | "wilderness" | "dangerous";
+}
+
 const BASE = (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "");
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -16,7 +22,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       const body = (await res.json()) as { error?: string };
       if (body?.error) detail = body.error;
     } catch {
-      /* ignore */
+      /* non-JSON body, use status text */
     }
     throw new Error(detail);
   }
@@ -293,7 +299,7 @@ async function adminRequest<T>(token: string, path: string, init?: RequestInit):
       const body = (await res.json()) as { error?: string };
       if (body?.error) detail = body.error;
     } catch {
-      /* ignore */
+      /* non-JSON body, use status text */
     }
     if (res.status === 401) detail = "Неверный токен администратора";
     if (res.status === 503) detail = "ADMIN_TOKEN не задан на сервере";

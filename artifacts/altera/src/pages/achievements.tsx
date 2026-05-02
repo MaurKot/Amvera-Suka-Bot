@@ -77,7 +77,7 @@ function AchievementRow({ a }: { a: AchievementDTO }) {
           <p className="text-sm text-muted-foreground mt-1 leading-snug">{a.description}</p>
           {a.targets.length > 0 && (
             <p className="text-[11px] mt-2 text-muted-foreground">
-              Получено: {new Date(a.targets[0]?.earnedAt ?? "").toLocaleString("ru-RU")}
+              Получено: {a.targets[0]?.earnedAt ? new Date(a.targets[0].earnedAt).toLocaleString("ru-RU") : "—"}
             </p>
           )}
         </div>

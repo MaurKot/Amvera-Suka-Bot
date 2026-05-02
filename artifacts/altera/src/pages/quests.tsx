@@ -4,7 +4,7 @@ import { Layout } from "@/components/layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Scroll, CheckCircle2, Circle, Sparkles } from "lucide-react";
+import { Scroll, CircleCheck as CheckCircle2, Circle, Sparkles } from "lucide-react";
 import { listQuests, acceptQuest, completeQuest, type QuestDTO } from "@/lib/api";
 import { useRealtimeEvents } from "@/lib/realtime";
 import { haptic } from "@/lib/telegram";
@@ -22,9 +22,7 @@ export function Quests() {
     queryKey: ["quests"],
     queryFn: listQuests,
     enabled: !!character,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
-    staleTime: 0,
+    staleTime: 30_000,
   });
 
   useRealtimeEvents((ev) => {

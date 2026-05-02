@@ -47,7 +47,10 @@ export function BattleScreen() {
     return (
       <Layout title="Битва">
         <div className="flex-1 flex items-center justify-center">
-          <Skull className="w-8 h-8 text-destructive animate-pulse opacity-50" />
+          <svg className="w-10 h-10 text-destructive runic-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <circle cx="12" cy="12" r="10" strokeDasharray="4 2" />
+            <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+          </svg>
         </div>
       </Layout>
     );
@@ -107,18 +110,19 @@ export function BattleScreen() {
               battle.status === BattleStatus.fled) && (
               <Card
                 className={cn(
-                  "bg-card/70 border text-center",
+                  "card-parchment bg-card/70 border text-center",
                   battle.status === BattleStatus.victory
-                    ? "border-primary/50"
-                    : "border-destructive/50",
+                    ? "border-primary/50 glow-important"
+                    : "border-destructive/50 glow-danger",
                 )}
               >
-                <CardContent className="pt-5 pb-4">
+                <CardContent className="pt-6 pb-5">
+                  <div className="ornament-rule mb-3">&nbsp;</div>
                   <h3
                     className={cn(
-                      "text-xl font-serif mb-2",
+                      "text-2xl font-serif mb-2",
                       battle.status === BattleStatus.victory
-                        ? "text-primary"
+                        ? "text-primary text-fantasy-glow"
                         : "text-destructive",
                     )}
                   >
@@ -140,6 +144,7 @@ export function BattleScreen() {
                       Тебя возвращают на площадь Ардвейла. Отдохни.
                     </p>
                   )}
+                  <div className="ornament-rule mt-3">&nbsp;</div>
                 </CardContent>
               </Card>
             )}
@@ -155,6 +160,7 @@ export function BattleScreen() {
                   haptic("selection");
                   navigate("/map");
                 }}
+                className="btn-press"
                 data-testid="battle-goto-map"
               >
                 <MapIcon className="h-4 w-4 mr-2" /> Найти опасные земли
@@ -166,7 +172,7 @@ export function BattleScreen() {
                 <button
                   key={enemy.key}
                   type="button"
-                  className="w-full text-left bg-card/70 border border-border/40 hover:border-destructive/40 transition-colors rounded-md p-3"
+                  className="w-full text-left card-parchment bg-card/70 border border-border/40 hover:border-destructive/40 transition-all rounded-md p-3 btn-press"
                   onClick={() => handleStart(enemy.key)}
                   disabled={startBattle.isPending}
                   data-testid={`pick-enemy-${enemy.key}`}
@@ -189,7 +195,7 @@ export function BattleScreen() {
                         <span>Ур. {enemy.level}</span>
                       </div>
                     </div>
-                    <span className="shrink-0 inline-flex items-center text-[11px] font-serif uppercase tracking-wide text-destructive border border-destructive/40 rounded px-2 py-1">
+                    <span className="shrink-0 inline-flex items-center text-[11px] font-serif uppercase tracking-wide text-destructive border border-destructive/40 rounded px-2 py-1 bg-destructive/5">
                       В бой
                     </span>
                   </div>
@@ -210,7 +216,12 @@ export function BattleScreen() {
         animate={{ opacity: 1 }}
         className="flex flex-col gap-3"
       >
-        {/* HP bars: stacked on mobile */}
+        {/* Round counter */}
+        <div className="text-center text-[11px] font-mono text-muted-foreground uppercase tracking-widest">
+          Раунд {battle.log.length > 0 ? battle.log[battle.log.length - 1].round : 1}
+        </div>
+
+        {/* HP bars: WoW unit frame style */}
         <div className="grid grid-cols-2 gap-2">
           <CombatantCard
             name={character.name}
@@ -230,10 +241,10 @@ export function BattleScreen() {
           />
         </div>
 
-        {/* Combat log */}
+        {/* Combat log — parchment texture */}
         <div
           ref={logRef}
-          className="flex-1 min-h-[40dvh] max-h-[55dvh] overflow-y-auto bg-black/40 border border-border/40 rounded-md p-3 space-y-2"
+          className="flex-1 min-h-[40dvh] max-h-[55dvh] overflow-y-auto card-parchment bg-surface-2 border border-border/40 rounded-md p-3 space-y-2"
           data-testid="battle-log"
         >
           <AnimatePresence initial={false}>
@@ -257,10 +268,10 @@ export function BattleScreen() {
                 )}
                 {entry.text}
                 {entry.damage ? (
-                  <span className="ml-2 font-mono font-bold">{entry.damage}</span>
+                  <span className="ml-2 font-mono font-bold text-destructive">{entry.damage}</span>
                 ) : null}
                 {entry.crit ? (
-                  <span className="ml-2 text-yellow-500 font-bold uppercase tracking-widest text-[10px]">
+                  <span className="ml-2 text-primary font-bold uppercase tracking-widest text-[10px]">
                     Крит!
                   </span>
                 ) : null}
@@ -269,9 +280,7 @@ export function BattleScreen() {
           </AnimatePresence>
         </div>
 
-        {/* v2 — 3x2 action grid: STR (Тяжёлая), default (Атака), AGI (Быстрая)
-            on the top row; defensive (Защита), AGI defensive (Уворот), and
-            escape (Бегство) on the bottom. Each tone hints at the role. */}
+        {/* Action grid — WoW spell school buttons */}
         <div className="grid grid-cols-3 gap-2 sticky bottom-20 sm:static">
           <ActionButton
             label="Атака"
@@ -344,7 +353,7 @@ function CombatantCard({
 }) {
   const pct = maxHp > 0 ? Math.min(100, Math.max(0, (hp / maxHp) * 100)) : 0;
   return (
-    <Card className="bg-card/70 border-border/40">
+    <Card className="card-parchment bg-card/70 border-border/40">
       <CardContent className="p-3">
         <h3
           className={cn(
@@ -354,22 +363,22 @@ function CombatantCard({
         >
           {name}
         </h3>
-        <div
-          className={cn(
-            "mt-1 text-2xl font-mono",
-            valueClass,
-            align === "right" && "text-right",
-          )}
-        >
-          {hp}
-        </div>
-        <div className="mt-1 h-1.5 w-full bg-black/50 rounded-full overflow-hidden">
+        {/* HP number centered inside the bar — WoW unit frame style */}
+        <div className="mt-1 relative h-3 w-full bg-black/50 rounded-sm overflow-hidden border border-white/5 bar-segmented">
           <motion.div
             initial={false}
             animate={{ width: `${pct}%` }}
             transition={{ duration: 0.3 }}
-            className={cn("h-full", color)}
+            className={cn("h-full rounded-sm", color)}
+            style={{ willChange: "transform" }}
           />
+          <span
+            className={cn(
+              "absolute inset-0 flex items-center justify-center text-[10px] font-mono font-bold text-foreground no-shadow",
+            )}
+          >
+            {hp}/{maxHp}
+          </span>
         </div>
       </CardContent>
     </Card>
@@ -391,24 +400,24 @@ function ActionButton({
   testId: string;
   tone: "primary" | "secondary" | "destructive" | "muted";
 }) {
-  const cls =
-    tone === "primary"
-      ? "border-primary/40 hover:bg-primary/15 text-primary"
-      : tone === "destructive"
-      ? "border-destructive/40 hover:bg-destructive/15 text-destructive"
-      : tone === "secondary"
-      ? "border-secondary/40 hover:bg-secondary/15 text-secondary-foreground"
-      : "border-border/60 hover:bg-muted/40 text-foreground";
+  const bgMap = {
+    primary: "bg-primary/10 border-primary/40 hover:bg-primary/20 text-primary",
+    destructive: "bg-destructive/10 border-destructive/40 hover:bg-destructive/20 text-destructive",
+    secondary: "bg-secondary/10 border-secondary/40 hover:bg-secondary/20 text-secondary-foreground",
+    muted: "bg-muted/20 border-border/60 hover:bg-muted/40 text-foreground",
+  };
   return (
     <Button
       variant="outline"
       onClick={onClick}
       disabled={disabled}
-      className={cn("h-14 font-serif text-sm tracking-wide bg-background/40", cls)}
+      className={cn("h-16 font-serif text-sm tracking-wide btn-press relative overflow-hidden", bgMap[tone])}
       data-testid={testId}
     >
-      <Icon className="w-4 h-4 mr-2" />
-      {label}
+      {/* Faint oversized icon background glyph */}
+      <Icon className="w-10 h-10 absolute opacity-[0.06] pointer-events-none" />
+      <Icon className="w-4 h-4 mr-2 relative" />
+      <span className="relative">{label}</span>
     </Button>
   );
 }

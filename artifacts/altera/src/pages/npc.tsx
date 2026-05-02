@@ -100,10 +100,10 @@ export function NpcProfile() {
         className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full"
       >
         <div className="md:col-span-1 space-y-6">
-          <Card className="bg-black/20 border-white/5 sticky top-6">
+          <Card className="card-parchment bg-card/70 border-border/40 sticky top-6">
             <CardContent className="pt-6 space-y-4">
               <div className="text-center">
-                <div className="w-24 h-24 mx-auto bg-black/40 rounded-sm border border-primary/20 flex items-center justify-center mb-4">
+                <div className="w-24 h-24 mx-auto bg-surface-2 rounded-sm border border-primary/20 flex items-center justify-center mb-4">
                   <MessageCircle className="w-8 h-8 text-primary/50" />
                 </div>
                 <h2 className="text-2xl font-serif text-foreground">{npc.name}</h2>
@@ -111,8 +111,8 @@ export function NpcProfile() {
               </div>
               
               <div className="flex flex-wrap justify-center gap-2 mt-4">
-                <Badge variant="outline" className="border-white/10 uppercase text-[10px] tracking-wider">{npc.role}</Badge>
-                <Badge variant="outline" className="border-white/10 uppercase text-[10px] tracking-wider">{npc.faction}</Badge>
+                <Badge variant="outline" className="border-border/40 uppercase text-[10px] tracking-wider">{npc.role}</Badge>
+                <Badge variant="outline" className="border-border/40 uppercase text-[10px] tracking-wider">{npc.faction}</Badge>
               </div>
 
               <Separator className="bg-white/5 my-4" />
@@ -149,7 +149,7 @@ export function NpcProfile() {
         </div>
 
         <div className="md:col-span-2 flex flex-col h-[calc(100vh-8rem)] md:h-[calc(100vh-12rem)]">
-          <Card className="flex-1 flex flex-col bg-black/20 border-white/5 overflow-hidden">
+          <Card className="flex-1 flex flex-col card-parchment bg-card/70 border-border/40 overflow-hidden">
             <ScrollArea className="flex-1 p-4" ref={scrollRef}>
               <div className="space-y-6 pb-4">
                 {(!dialogue || dialogue.length === 0) ? (
@@ -177,7 +177,7 @@ export function NpcProfile() {
                             className={`p-3 rounded-sm font-serif leading-relaxed text-sm md:text-base border ${
                               msg.role === 'player' 
                                 ? 'bg-primary/10 border-primary/20 text-primary-foreground' 
-                                : 'bg-black/40 border-white/5 text-foreground'
+                                : 'bg-surface-2 border-border/40 text-foreground'
                             }`}
                           >
                             {msg.content}
@@ -189,7 +189,7 @@ export function NpcProfile() {
                 )}
                 {sendDialogue.isPending && (
                   <div className="mr-auto items-start max-w-[80%] opacity-50">
-                    <div className="p-3 rounded-sm font-serif bg-black/40 border border-white/5 text-foreground animate-pulse">
+                    <div className="p-3 rounded-sm font-serif bg-surface-2 border border-border/40 text-foreground animate-pulse">
                       ...
                     </div>
                   </div>
@@ -197,7 +197,7 @@ export function NpcProfile() {
               </div>
             </ScrollArea>
             
-            <div className="p-4 border-t border-white/5 bg-black/40">
+            <div className="p-4 border-t border-border/40 bg-surface-2">
               <form onSubmit={handleSend} className="space-y-4">
                 <div className="flex flex-wrap gap-2 mb-2">
                   {tones.map(t => (
@@ -219,7 +219,7 @@ export function NpcProfile() {
                     value={message}
                     onChange={e => setMessage(e.target.value)}
                     placeholder="Ваши слова..."
-                    className="font-serif bg-black/50 border-white/10 focus-visible:ring-primary/50 rounded-sm"
+                    className="font-serif bg-black/50 border-border/40 focus-visible:ring-primary/50 rounded-sm"
                     disabled={sendDialogue.isPending}
                   />
                   <Button 

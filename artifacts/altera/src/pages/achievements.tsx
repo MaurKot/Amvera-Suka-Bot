@@ -49,7 +49,7 @@ function AchievementRow({ a }: { a: AchievementDTO }) {
     <Card
       data-testid={`achievement-${a.key}`}
       className={cn(
-        "border bg-card/70 backdrop-blur",
+        "border bg-card/70 backdrop-blur card-parchment",
         a.earned ? "border-primary/40" : "border-border/40 opacity-70",
       )}
     >

@@ -35,10 +35,10 @@ export function Lore() {
           <p className="text-muted-foreground font-serif italic text-sm">Труды древних мудрецов Альтеры.</p>
         </header>
 
-        <Card className="flex-1 flex flex-col bg-black/20 border-white/5 overflow-hidden">
+        <Card className="flex-1 flex flex-col card-parchment bg-card/70 border-border/40 overflow-hidden">
           <Tabs defaultValue="races" className="flex-1 flex flex-col h-full">
             <div className="px-4 pt-4">
-              <TabsList className="w-full grid grid-cols-4 bg-black/40 border border-white/10 rounded-sm">
+              <TabsList className="w-full grid grid-cols-4 bg-black/40 border border-border/40 rounded-sm">
                 <TabsTrigger value="races" className="font-serif tracking-widest data-[state=active]:bg-primary/20 data-[state=active]:text-primary">Происхождения</TabsTrigger>
                 <TabsTrigger value="classes" className="font-serif tracking-widest data-[state=active]:bg-secondary/20 data-[state=active]:text-secondary-foreground">Пути</TabsTrigger>
                 <TabsTrigger value="locations" className="font-serif tracking-widest data-[state=active]:bg-white/10">Локации</TabsTrigger>
@@ -51,7 +51,7 @@ export function Lore() {
                 <ScrollArea className="h-full p-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-8">
                     {lore.races.map(race => (
-                      <Card key={race.key} className="bg-black/40 border-white/5 hover:border-primary/30 transition-colors">
+                      <Card key={race.key} className="bg-surface-2 border-border/40 hover:border-primary/30 transition-colors">
                         <CardHeader className="pb-2">
                           <CardTitle className="font-serif text-xl text-primary flex items-center justify-between">
                             {race.nameRu}
@@ -60,7 +60,7 @@ export function Lore() {
                         </CardHeader>
                         <CardContent>
                           <p className="text-sm text-muted-foreground italic mb-4 leading-relaxed">{race.lore}</p>
-                          <div className="bg-black/50 p-3 rounded border border-white/5">
+                          <div className="bg-surface-3 p-3 rounded border border-border/40">
                             <span className="text-xs uppercase font-mono tracking-widest text-muted-foreground mb-2 block">Особенности Крови</span>
                             <div className="flex flex-wrap gap-2">
                               {Object.entries(race.bonuses).map(([stat, val]) => (
@@ -81,7 +81,7 @@ export function Lore() {
                 <ScrollArea className="h-full p-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-8">
                     {lore.classes.map(cls => (
-                      <Card key={cls.key} className="bg-black/40 border-white/5 hover:border-secondary/30 transition-colors">
+                      <Card key={cls.key} className="bg-surface-2 border-border/40 hover:border-secondary/30 transition-colors">
                         <CardHeader className="pb-2">
                           <CardTitle className="font-serif text-xl text-secondary-foreground flex items-center justify-between">
                             {cls.nameRu}
@@ -90,7 +90,7 @@ export function Lore() {
                         </CardHeader>
                         <CardContent>
                           <p className="text-sm text-muted-foreground mb-4 leading-relaxed">{cls.desc}</p>
-                          <div className="bg-black/50 p-3 rounded border border-white/5">
+                          <div className="bg-surface-3 p-3 rounded border border-border/40">
                             <span className="text-xs uppercase font-mono tracking-widest text-muted-foreground mb-2 block">Базовые Характеристики</span>
                             <div className="grid grid-cols-2 gap-2 text-xs font-mono">
                               {Object.entries(cls.startStats).map(([stat, val]) => (
@@ -112,7 +112,7 @@ export function Lore() {
                 <ScrollArea className="h-full p-4">
                   <div className="grid grid-cols-1 gap-4 pb-8">
                     {lore.locations.map(loc => (
-                      <Card key={loc.id} className="bg-black/40 border-white/5 hover:border-white/20 transition-colors relative overflow-hidden group">
+                      <Card key={loc.id} className="bg-surface-2 border-border/40 hover:border-primary/20 transition-colors relative overflow-hidden group">
                         <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                         <CardContent className="p-6 relative z-10">
                           <div className="flex justify-between items-start mb-4">
@@ -121,7 +121,7 @@ export function Lore() {
                                 <MapPin className="w-5 h-5 text-primary opacity-70" />
                                 {loc.name}
                               </h3>
-                              <Badge variant="outline" className="border-white/10 text-muted-foreground font-mono text-xs">{loc.region}</Badge>
+                              <Badge variant="outline" className="border-border/40 text-muted-foreground font-mono text-xs">{loc.region}</Badge>
                             </div>
                             {loc.isSafe ? (
                               <Badge variant="outline" className="border-secondary/30 text-secondary-foreground bg-secondary/10">Мирная зона</Badge>
@@ -143,7 +143,7 @@ export function Lore() {
                 <ScrollArea className="h-full p-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-8">
                     {lore.enemies.map(enemy => (
-                      <Card key={enemy.key} className="bg-black/40 border-white/5 hover:border-destructive/30 transition-colors">
+                      <Card key={enemy.key} className="bg-surface-2 border-border/40 hover:border-destructive/30 transition-colors">
                         <CardHeader className="pb-2">
                           <CardTitle className="font-serif text-xl text-destructive flex items-center justify-between">
                             {enemy.name}
@@ -152,7 +152,7 @@ export function Lore() {
                         </CardHeader>
                         <CardContent>
                           <p className="text-sm text-muted-foreground italic mb-4 leading-relaxed">{enemy.lore}</p>
-                          <div className="bg-black/50 p-3 rounded border border-white/5 flex justify-between text-xs font-mono">
+                          <div className="bg-surface-3 p-3 rounded border border-border/40 flex justify-between text-xs font-mono">
                             <div className="space-y-1">
                               <div className="text-muted-foreground">Здоровье</div>
                               <div className="text-destructive text-lg">{enemy.hp}</div>

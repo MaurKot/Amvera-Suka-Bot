@@ -15,6 +15,10 @@ import {
   ScrollText,
   Sword,
   Eye,
+  Flame,
+  Star,
+  Shield,
+  User,
 } from "lucide-react";
 
 import {
@@ -64,7 +68,10 @@ export function Home() {
     return (
       <div className="min-h-[100dvh] flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <Skull className="w-8 h-8 text-primary animate-pulse opacity-50" />
+          <svg className="w-10 h-10 text-primary runic-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <circle cx="12" cy="12" r="10" strokeDasharray="4 2" />
+            <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+          </svg>
           <p className="text-muted-foreground font-serif tracking-widest text-sm uppercase">
             Чтение свитков судьбы...
           </p>
@@ -107,6 +114,7 @@ export function Home() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background pointer-events-none" />
         <div className="relative z-10 mx-auto w-full max-w-2xl px-4 pt-[max(env(safe-area-inset-top),1rem)] pb-[max(env(safe-area-inset-bottom),5rem)]">
           <header className="text-center pt-2 pb-6">
+            <div className="ornament-rule mb-3">&nbsp;</div>
             <h1 className="text-2xl sm:text-3xl font-serif text-primary tracking-widest uppercase">
               Создание Души
             </h1>
@@ -129,7 +137,7 @@ export function Home() {
                     <FormControl>
                       <Input
                         placeholder="Например, Эларион..."
-                        className="text-center font-serif text-lg border-primary/30 bg-black/40 focus-visible:ring-primary/50 h-12"
+                        className="text-center font-serif text-lg border-primary/30 bg-surface-2 focus-visible:ring-primary/50 h-12"
                         autoComplete="off"
                         {...field}
                       />
@@ -163,10 +171,10 @@ export function Home() {
                           haptic("selection");
                         }}
                         className={cn(
-                          "text-left p-3 rounded-md border transition-all",
+                          "text-left p-3 rounded-md border transition-all btn-press",
                           isActive
                             ? "bg-primary/10 border-primary shadow-[0_0_12px_rgba(212,175,55,0.18)]"
-                            : "bg-black/20 border-border/50 hover:border-primary/40",
+                            : "bg-surface-2 border-border/50 hover:border-primary/40",
                         )}
                         data-testid={`race-${race.key}`}
                       >
@@ -227,10 +235,10 @@ export function Home() {
                           haptic("selection");
                         }}
                         className={cn(
-                          "text-left p-3 rounded-md border transition-all",
+                          "text-left p-3 rounded-md border transition-all btn-press",
                           isActive
-                            ? "bg-secondary/15 border-secondary shadow-[0_0_12px_rgba(140,80,160,0.18)]"
-                            : "bg-black/20 border-border/50 hover:border-secondary/40",
+                            ? "bg-secondary/15 border-secondary shadow-[0_0_12px_rgba(80,160,120,0.18)]"
+                            : "bg-surface-2 border-border/50 hover:border-secondary/40",
                         )}
                         data-testid={`class-${cls.key}`}
                       >
@@ -265,12 +273,12 @@ export function Home() {
           </Form>
 
           {/* Sticky submit */}
-          <div className="fixed bottom-0 left-0 right-0 z-40 px-4 pt-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] bg-background/95 backdrop-blur border-t border-border/40">
+          <div className="fixed bottom-0 left-0 right-0 z-40 px-4 pt-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] bg-background/95 backdrop-blur-md border-t border-primary/20">
             <Button
               type="button"
               onClick={form.handleSubmit(onSubmit)}
               size="lg"
-              className="w-full h-12 font-serif text-base tracking-widest uppercase bg-primary text-primary-foreground hover:bg-primary/90"
+              className="w-full h-12 font-serif text-base tracking-widest uppercase bg-primary text-primary-foreground hover:bg-primary/90 btn-press shadow-[0_0_16px_rgba(212,175,55,0.2)]"
               disabled={createMutation.isPending}
               data-testid="create-character"
             >
@@ -292,24 +300,30 @@ export function Home() {
         animate={{ opacity: 1, y: 0 }}
         className="space-y-4"
       >
-        {/* Identity */}
+        {/* Identity — portrait frame + name */}
         <div className="pb-3 border-b border-border/40">
           <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <h1 className="text-2xl font-serif text-foreground tracking-wide truncate">
-                {character.name}
-              </h1>
-              <div className="mt-1 flex items-center gap-2 flex-wrap text-xs font-mono text-muted-foreground">
-                <Badge variant="outline" className="border-primary/30 text-primary uppercase text-[10px]">
-                  {character.race}
-                </Badge>
-                <Badge
-                  variant="outline"
-                  className="border-secondary/30 text-secondary-foreground uppercase text-[10px]"
-                >
-                  {character.charClass}
-                </Badge>
-                <span>Ур. {character.level}</span>
+            {/* Character portrait ring — WoW unit frame style */}
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="shrink-0 w-12 h-12 rounded-full border-2 border-primary/40 bg-surface-2 flex items-center justify-center shadow-[0_0_12px_rgba(212,175,55,0.15)]">
+                <User className="w-6 h-6 text-primary/70" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-2xl font-serif text-foreground tracking-wide truncate">
+                  {character.name}
+                </h1>
+                <div className="mt-1 flex items-center gap-2 flex-wrap text-xs font-mono text-muted-foreground">
+                  <Badge variant="outline" className="border-primary/30 text-primary uppercase text-[10px]">
+                    {character.race}
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="border-secondary/30 text-secondary-foreground uppercase text-[10px]"
+                  >
+                    {character.charClass}
+                  </Badge>
+                  <span>Ур. {character.level}</span>
+                </div>
               </div>
             </div>
             <Button
@@ -323,11 +337,12 @@ export function Home() {
           </div>
         </div>
 
-        {/* Vitals */}
-        <Card className="bg-card/70 border-border/40">
+        {/* Vitals — segmented WoW-style bars */}
+        <Card className="card-parchment bg-card/70 border-border/40">
           <CardContent className="pt-4 space-y-3">
             <Bar
               label="Здоровье"
+              icon={Heart}
               value={character.hp}
               max={character.maxHp}
               color="bg-destructive"
@@ -335,6 +350,7 @@ export function Home() {
             />
             <Bar
               label="Мана"
+              icon={Flame}
               value={character.mana}
               max={character.maxMana}
               color="bg-secondary"
@@ -342,6 +358,7 @@ export function Home() {
             />
             <Bar
               label="Опыт"
+              icon={Star}
               value={character.experience}
               max={character.nextLevelExp}
               color="bg-primary/70"
@@ -354,7 +371,7 @@ export function Home() {
               </span>
               {character.statPoints > 0 && (
                 <Badge
-                  className="bg-primary text-primary-foreground animate-pulse cursor-pointer"
+                  className="bg-primary text-primary-foreground animate-pulse cursor-pointer btn-press"
                   onClick={() => navigate("/character")}
                   data-testid="stat-points-cta"
                 >
@@ -366,7 +383,7 @@ export function Home() {
         </Card>
 
         {/* Current location with prominent CTAs */}
-        <Card className="bg-card/70 border-border/40">
+        <Card className="card-parchment bg-card/70 border-border/40">
           <CardHeader className="pb-2">
             <CardTitle className="font-serif text-base text-primary flex items-center gap-2">
               <Scroll className="w-4 h-4 opacity-70" />
@@ -375,7 +392,7 @@ export function Home() {
           </CardHeader>
           <CardContent className="space-y-3">
             {currentLocation && (
-              <p className="text-sm text-muted-foreground italic font-serif leading-relaxed line-clamp-3">
+              <p className="text-sm text-muted-foreground italic font-serif leading-relaxed line-clamp-3 border-l-2 border-primary/30 pl-3">
                 {currentLocation.description}
               </p>
             )}
@@ -385,7 +402,7 @@ export function Home() {
                   haptic("light");
                   navigate("/world");
                 }}
-                className="h-12 font-serif tracking-wide bg-primary text-primary-foreground hover:bg-primary/90"
+                className="h-12 font-serif tracking-wide bg-primary text-primary-foreground hover:bg-primary/90 btn-press shadow-[0_0_12px_rgba(212,175,55,0.15)]"
                 data-testid="home-look"
               >
                 <Eye className="w-4 h-4 mr-2" /> Осмотреться
@@ -396,7 +413,7 @@ export function Home() {
                   navigate("/map");
                 }}
                 variant="outline"
-                className="h-12 font-serif tracking-wide"
+                className="h-12 font-serif tracking-wide btn-press"
                 data-testid="home-map"
               >
                 <Map className="w-4 h-4 mr-2" /> Карта
@@ -407,7 +424,7 @@ export function Home() {
                   navigate("/battle");
                 }}
                 variant="outline"
-                className="h-11 font-serif tracking-wide border-destructive/40 text-destructive hover:bg-destructive/10"
+                className="h-11 font-serif tracking-wide border-destructive/40 text-destructive hover:bg-destructive/10 btn-press"
                 data-testid="home-battle"
               >
                 <Sword className="w-4 h-4 mr-2" /> Битва
@@ -418,7 +435,7 @@ export function Home() {
                   navigate("/quests");
                 }}
                 variant="outline"
-                className="h-11 font-serif tracking-wide"
+                className="h-11 font-serif tracking-wide btn-press"
                 data-testid="home-quests"
               >
                 <Scroll className="w-4 h-4 mr-2" /> Дела
@@ -429,7 +446,7 @@ export function Home() {
                   navigate("/achievements");
                 }}
                 variant="outline"
-                className="h-11 font-serif tracking-wide"
+                className="h-11 font-serif tracking-wide btn-press"
                 data-testid="home-achievements"
               >
                 <Trophy className="w-4 h-4 mr-2" /> Награды
@@ -440,7 +457,7 @@ export function Home() {
                   navigate("/ledger");
                 }}
                 variant="outline"
-                className="h-11 font-serif tracking-wide"
+                className="h-11 font-serif tracking-wide btn-press"
                 data-testid="home-ledger"
               >
                 <ScrollText className="w-4 h-4 mr-2" /> Хроника
@@ -451,7 +468,7 @@ export function Home() {
                   navigate("/referral");
                 }}
                 variant="outline"
-                className="col-span-2 h-10 font-serif tracking-wide"
+                className="col-span-2 h-10 font-serif tracking-wide btn-press"
                 data-testid="home-referral"
               >
                 <Gift className="w-4 h-4 mr-2" /> Пригласить друга
@@ -472,12 +489,14 @@ export function Home() {
 
 function Bar({
   label,
+  icon: Icon,
   value,
   max,
   color,
   valueClass,
 }: {
   label: string;
+  icon: React.ComponentType<{ className?: string }>;
   value: number;
   max: number;
   color: string;
@@ -487,23 +506,22 @@ function Bar({
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-[11px] font-mono text-muted-foreground">
-        <span>{label}</span>
+        <span className="inline-flex items-center gap-1.5">
+          <Icon className="h-3 w-3" /> {label}
+        </span>
         <span className={valueClass}>
           {value} / {max}
         </span>
       </div>
-      <div className="h-1.5 w-full bg-black/50 rounded-full overflow-hidden">
+      <div className="h-2 w-full bg-black/50 rounded-sm overflow-hidden border border-white/5 bar-segmented">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${pct}%` }}
           transition={{ duration: 0.4 }}
-          className={cn("h-full", color)}
+          className={cn("h-full rounded-sm", color)}
+          style={{ willChange: "transform" }}
         />
       </div>
     </div>
   );
 }
-
-// Heart import is needed for the icon? We don't use it directly. Cleanup unused import.
-// (Heart was imported above; keep import block stable to avoid TS unused warnings)
-void Heart;

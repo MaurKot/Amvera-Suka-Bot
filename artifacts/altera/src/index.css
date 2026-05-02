@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -36,7 +35,7 @@
   --color-destructive-foreground: hsl(var(--destructive-foreground));
 
   --font-sans: 'Plus Jakarta Sans', sans-serif;
-  --font-serif: 'Playfair Display', serif;
+  --font-serif: 'Cinzel', 'Playfair Display', serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
   --radius-sm: calc(var(--radius) - 4px);
@@ -46,44 +45,42 @@
 }
 
 :root {
-  /* Dark fantasy default (treat light mode as dark) */
-  --background: 240 10% 4%; /* Obsidian */
-  --foreground: 36 38% 92%; /* Brighter parchment — WCAG AA on obsidian */
+  /* Dark fantasy palette — warm stone & firelight (WoW / Skyrim / Enderal) */
+  --background: 30 8% 5%;
+  --foreground: 38 35% 88%;
 
-  --border: 240 5% 18%;
-  --input: 240 5% 18%;
-  --ring: 43 70% 62%; /* Brighter tarnished gold for focus rings */
+  --border: 30 10% 18%;
+  --input: 30 10% 18%;
+  --ring: 43 80% 55%;
 
-  --card: 240 8% 7%;
-  --card-foreground: 36 38% 92%;
-  --card-border: 240 5% 14%;
+  --card: 30 8% 8%;
+  --card-foreground: 38 35% 88%;
+  --card-border: 30 8% 14%;
 
-  --popover: 240 10% 4%;
-  --popover-foreground: 36 38% 92%;
-  --popover-border: 240 5% 18%;
+  --popover: 30 8% 5%;
+  --popover-foreground: 38 35% 88%;
+  --popover-border: 30 10% 18%;
 
-  --primary: 43 70% 62%; /* Brighter tarnished gold — readable on dark */
-  --primary-foreground: 240 12% 5%;
+  --primary: 43 80% 55%;
+  --primary-foreground: 30 12% 5%;
 
-  --secondary: 290 42% 22%; /* Lifted bruised violet */
-  --secondary-foreground: 36 38% 92%;
+  --secondary: 165 30% 22%;
+  --secondary-foreground: 38 35% 88%;
 
-  --muted: 240 5% 12%;
-  --muted-foreground: 240 8% 78%; /* Was 65% — WCAG AA */
+  --muted: 30 6% 13%;
+  --muted-foreground: 30 8% 65%;
 
-  --accent: 290 42% 22%;
-  --accent-foreground: 36 38% 92%;
+  --accent: 165 30% 22%;
+  --accent-foreground: 38 35% 88%;
 
-  --destructive: 0 75% 56%; /* Brighter ember red — readable */
-  --destructive-foreground: 36 38% 96%;
+  --destructive: 0 65% 42%;
+  --destructive-foreground: 38 35% 95%;
 
-  /* P1 — Readability tokens. All text shadows are *dark* shadows for
-     legibility against translucent or noisy backgrounds. */
   --text-shadow-fantasy: 0 1px 2px rgba(0, 0, 0, 0.85), 0 0 1px rgba(0, 0, 0, 0.6);
   --text-shadow-fantasy-strong: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 2px rgba(0, 0, 0, 0.85);
-  --text-shadow-glow-gold: 0 0 8px hsl(43 70% 62% / 0.45), 0 1px 2px rgba(0, 0, 0, 0.85);
+  --text-shadow-glow-gold: 0 0 10px hsl(43 80% 55% / 0.5), 0 1px 2px rgba(0, 0, 0, 0.85);
 
-  --radius: 0.125rem; /* Sharp edges */
+  --radius: 0.25rem;
 
   --sidebar: var(--background);
   --sidebar-foreground: var(--foreground);
@@ -102,28 +99,27 @@
 }
 
 .dark {
-  /* Same as root, it's always dark */
-  --background: 240 10% 4%;
-  --foreground: 36 38% 92%;
-  --border: 240 5% 18%;
-  --input: 240 5% 18%;
-  --ring: 43 70% 62%;
-  --card: 240 8% 7%;
-  --card-foreground: 36 38% 92%;
-  --card-border: 240 5% 14%;
-  --popover: 240 10% 4%;
-  --popover-foreground: 36 38% 92%;
-  --popover-border: 240 5% 18%;
-  --primary: 43 70% 62%;
-  --primary-foreground: 240 12% 5%;
-  --secondary: 290 42% 22%;
-  --secondary-foreground: 36 38% 92%;
-  --muted: 240 5% 12%;
-  --muted-foreground: 240 8% 78%;
-  --accent: 290 42% 22%;
-  --accent-foreground: 36 38% 92%;
-  --destructive: 0 75% 56%;
-  --destructive-foreground: 36 38% 96%;
+  --background: 30 8% 5%;
+  --foreground: 38 35% 88%;
+  --border: 30 10% 18%;
+  --input: 30 10% 18%;
+  --ring: 43 80% 55%;
+  --card: 30 8% 8%;
+  --card-foreground: 38 35% 88%;
+  --card-border: 30 8% 14%;
+  --popover: 30 8% 5%;
+  --popover-foreground: 38 35% 88%;
+  --popover-border: 30 10% 18%;
+  --primary: 43 80% 55%;
+  --primary-foreground: 30 12% 5%;
+  --secondary: 165 30% 22%;
+  --secondary-foreground: 38 35% 88%;
+  --muted: 30 6% 13%;
+  --muted-foreground: 30 8% 65%;
+  --accent: 165 30% 22%;
+  --accent-foreground: 38 35% 88%;
+  --destructive: 0 65% 42%;
+  --destructive-foreground: 38 35% 95%;
 }
 
 @layer base {
@@ -133,33 +129,27 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
-    /* P7 — Body copy: 16px / 1.7 line-height, weight ≥ 500 (per design audit). */
     font-size: 16px;
     line-height: 1.7;
     font-weight: 500;
     letter-spacing: 0.005em;
-    /* subtle noise texture */
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
   }
 
-  /* P7 — Enforce minimum legible weight on every paragraph & list element. */
   p, li, dd, dt, blockquote {
     font-weight: 500;
   }
 
-  /* P1 — Body copy + small UI text get a soft dark shadow so they stay
-     readable over the noise texture and translucent cards. */
   p, span, li, td, th, label, button, input, textarea, select, a {
     text-shadow: var(--text-shadow-fantasy);
   }
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-serif tracking-wide;
-    font-weight: 600;
+    font-weight: 700;
     text-shadow: var(--text-shadow-fantasy-strong);
   }
 
-  /* Larger headings get a faint gold glow */
   h1, h2 {
     text-shadow: var(--text-shadow-glow-gold);
   }
@@ -175,7 +165,6 @@
     touch-action: manipulation;
   }
 
-  /* Prevent iOS auto-zoom on input focus by ensuring 16px font on touch devices */
   @media (max-width: 640px) {
     input, textarea, select {
       font-size: 16px !important;
@@ -187,7 +176,6 @@
     user-select: none;
   }
 
-  /* Allow Telegram WebApp theme to override our dark background when present */
   body {
     background-color: var(--tg-bg, hsl(var(--background)));
   }
@@ -197,87 +185,155 @@
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-  /* P1 — escape hatches. Use `.no-shadow` on chips/badges where the
-     soft shadow looks muddy. Use `.text-fantasy-strong` for callouts
-     that need extra contrast. */
   .no-shadow { text-shadow: none !important; }
   .text-fantasy-strong { text-shadow: var(--text-shadow-fantasy-strong); }
   .text-fantasy-glow { text-shadow: var(--text-shadow-glow-gold); }
 
-  /* P6 — world event severity colour ramp */
-  .event-sev-1 { color: hsl(43 70% 70%); }   /* mild */
-  .event-sev-2 { color: hsl(28 80% 65%); }   /* notable */
-  .event-sev-3 { color: hsl(0 75% 65%); }    /* dire */
+  .event-sev-1 { color: hsl(43 80% 65%); }
+  .event-sev-2 { color: hsl(28 80% 60%); }
+  .event-sev-3 { color: hsl(0 65% 58%); }
 
-  /* ── P7 — Faction NPC stripe ─────────────────────────────────────────────
-     Apply to the side of an NPC dialog card. Each faction has its own colour
-     and a thin gold underline so the player parses the alignment instantly. */
   .npc-stripe {
     position: relative;
     padding-left: 0.875rem;
-    border-left: 3px solid hsl(36 38% 60%);
+    border-left: 3px solid hsl(38 35% 60%);
   }
-  .npc-stripe-maeran    { border-left-color: hsl(28 70% 55%); }   /* maeran traders — copper */
-  .npc-stripe-karath    { border-left-color: hsl(210 25% 55%); }  /* karath — slate */
-  .npc-stripe-sahvaki   { border-left-color: hsl(160 35% 50%); }  /* sahvaki — moss */
-  .npc-stripe-velkhar   { border-left-color: hsl(0 55% 55%); }    /* velkhar — blood */
-  .npc-stripe-erivan    { border-left-color: hsl(265 45% 60%); }  /* erivan court — violet */
-  .npc-stripe-outcast   { border-left-color: hsl(240 6% 45%); }   /* unaligned — ash */
+  .npc-stripe-maeran    { border-left-color: hsl(28 70% 55%); }
+  .npc-stripe-karath    { border-left-color: hsl(210 25% 55%); }
+  .npc-stripe-sahvaki   { border-left-color: hsl(160 35% 50%); }
+  .npc-stripe-velkhar   { border-left-color: hsl(0 55% 55%); }
+  .npc-stripe-erivan    { border-left-color: hsl(265 45% 60%); }
+  .npc-stripe-outcast   { border-left-color: hsl(30 6% 45%); }
 
-  /* ── P7 — System messages: monospace gold (clearly distinct from NPC speech)
-     ──────────────────────────────────────────────────────────────────── */
   .sys-msg {
     font-family: var(--font-mono);
     font-weight: 500;
-    color: hsl(43 70% 62%);
+    color: hsl(43 80% 55%);
     letter-spacing: 0.02em;
     font-size: 0.8125rem;
     text-shadow: var(--text-shadow-fantasy);
   }
   .sys-msg::before {
-    content: "» ";
+    content: "\00BB ";
     opacity: 0.65;
   }
 
-  /* ── v2 — 3-layer dark surfaces ─────────────────────────────────────────
-     Per design audit: every screen must read as exactly three depth tiers,
-     darkest at the back, lightest at the front. Use the utilities directly
-     so the hierarchy stays consistent across pages. Borders are sized so
-     adjacent layers always have a visible seam without needing a glow. */
-  .surface-1 { background-color: #0f1115; }
+  .surface-1 { background-color: #12100e; }
   .surface-2 {
-    background-color: #161a22;
-    border: 1px solid #1f2633;
+    background-color: #1a1714;
+    border: 1px solid #2a2520;
   }
   .surface-3 {
-    background-color: #1f2633;
-    border: 1px solid #2a3242;
+    background-color: #221f1a;
+    border: 1px solid #332e28;
   }
 
-  /* Text hierarchy — primary / secondary / muted. Reserved for v2 panels. */
-  .text-primary-soft   { color: #e6e3da; }
-  .text-secondary-soft { color: #aab1c0; }
-  .text-muted-soft     { color: #6b7384; }
+  .text-primary-soft   { color: #e6e0d4; }
+  .text-secondary-soft { color: #b0a898; }
+  .text-muted-soft     { color: #7a7268; }
 
-  /* Important glow — apply ONLY to "the one thing that matters" on a screen
-     (e.g. the active enemy nameplate, the discovered frontier ring). Never
-     blanket-apply; the design intent is that glow tells the eye where to go. */
   .glow-important {
     box-shadow:
-      0 0 0 1px hsl(43 70% 62% / 0.35),
-      0 0 16px hsl(43 70% 62% / 0.25);
+      0 0 0 1px hsl(43 80% 55% / 0.35),
+      0 0 18px hsl(43 80% 55% / 0.28);
   }
   .glow-danger {
     box-shadow:
-      0 0 0 1px hsl(0 75% 56% / 0.40),
-      0 0 16px hsl(0 75% 56% / 0.28);
+      0 0 0 1px hsl(0 65% 42% / 0.40),
+      0 0 18px hsl(0 65% 42% / 0.28);
   }
 
-  /* ── v2 — Map zone danger ramp (0..5) ────────────────────────────────── */
   .zone-d0 { fill: #1d2a1d; stroke: #2c4a30; }
   .zone-d1 { fill: #1f2633; stroke: #3a455c; }
   .zone-d2 { fill: #2c2b1c; stroke: #6b5a26; }
   .zone-d3 { fill: #2e2114; stroke: #93611c; }
   .zone-d4 { fill: #2e1717; stroke: #a83434; }
   .zone-d5 { fill: #2a1326; stroke: #8b2c8b; }
+
+  .card-parchment {
+    background-image:
+      linear-gradient(hsl(var(--card)) 0%, hsl(var(--card)) 100%),
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)' opacity='0.04'/%3E%3C/svg%3E");
+  }
+
+  .ornament-rule {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: hsl(43 80% 55% / 0.4);
+    font-family: var(--font-serif);
+    font-size: 0.75rem;
+    letter-spacing: 0.5em;
+    user-select: none;
+  }
+  .ornament-rule::before,
+  .ornament-rule::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(
+      to var(--dir, right),
+      transparent,
+      hsl(43 80% 55% / 0.3),
+      transparent
+    );
+  }
+  .ornament-rule::before { --dir: right; }
+  .ornament-rule::after { --dir: left; }
+
+  .bar-segmented {
+    position: relative;
+    overflow: hidden;
+  }
+  .bar-segmented::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      90deg,
+      transparent 0,
+      transparent 18%,
+      rgba(0, 0, 0, 0.25) 18%,
+      rgba(0, 0, 0, 0.25) 20%
+    );
+    pointer-events: none;
+  }
+
+  .btn-press {
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+  }
+  .btn-press:active {
+    transform: scale(0.96);
+  }
+
+  @keyframes runic-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .runic-spinner {
+    animation: runic-spin 3s linear infinite;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  .shimmer-legendary {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(43 80% 55% / 0.15) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 3s ease-in-out infinite;
+  }
+
+  @keyframes typing-dot {
+    0%, 60%, 100% { opacity: 0.2; }
+    30% { opacity: 1; }
+  }
+  .typing-dot-1 { animation: typing-dot 1.4s ease-in-out infinite; }
+  .typing-dot-2 { animation: typing-dot 1.4s ease-in-out 0.2s infinite; }
+  .typing-dot-3 { animation: typing-dot 1.4s ease-in-out 0.4s infinite; }
 }

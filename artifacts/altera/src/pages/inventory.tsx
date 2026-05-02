@@ -72,8 +72,8 @@ export function Inventory() {
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full min-h-0">
-          <Card className="flex flex-col bg-black/20 border-white/5 overflow-hidden">
-            <CardHeader className="border-b border-white/5 bg-black/40">
+          <Card className="flex flex-col card-parchment bg-card/70 border-border/40 overflow-hidden">
+            <CardHeader className="border-b border-border/40 bg-surface-2">
               <CardTitle className="font-serif text-xl flex items-center gap-2 text-primary">
                 <Shield className="w-5 h-5 opacity-70" />
                 Экипировано
@@ -87,7 +87,7 @@ export function Inventory() {
               ) : (
                 <div className="space-y-4">
                   {equippedItems.map(item => (
-                    <Card key={item.id} className={`bg-black/40 border-white/5 hover:border-primary/30 transition-all ${item.rarity === 'legendary' ? 'shadow-[0_0_15px_rgba(234,179,8,0.1)]' : ''}`}>
+                    <Card key={item.id} className={`bg-surface-2 border-border/40 hover:border-primary/30 transition-all ${item.rarity === 'legendary' ? 'shadow-[0_0_15px_rgba(234,179,8,0.1)]' : ''}`}>
                       <CardContent className="p-4">
                         <div className="flex justify-between items-start mb-2">
                           <div>
@@ -103,13 +103,13 @@ export function Inventory() {
                             variant="outline"
                             onClick={() => handleEquip(item.id)}
                             disabled={equipItem.isPending}
-                            className="h-7 text-xs font-serif bg-black/50 border-white/10 hover:bg-white/5"
+                            className="h-7 text-xs font-serif bg-surface-2 border-border/40 hover:bg-surface-3"
                           >
                             Снять
                           </Button>
                         </div>
                         {item.stats && Object.keys(item.stats).length > 0 && (
-                          <div className="mt-3 pt-3 border-t border-white/5 grid grid-cols-2 gap-2 text-xs font-mono">
+                          <div className="mt-3 pt-3 border-t border-border/40 grid grid-cols-2 gap-2 text-xs font-mono">
                             {Object.entries(item.stats).map(([stat, val]) => (
                               <div key={stat} className="flex justify-between text-muted-foreground">
                                 <span>{stat}:</span>
@@ -126,8 +126,8 @@ export function Inventory() {
             </ScrollArea>
           </Card>
 
-          <Card className="flex flex-col bg-black/20 border-white/5 overflow-hidden">
-            <CardHeader className="border-b border-white/5 bg-black/40">
+          <Card className="flex flex-col card-parchment bg-card/70 border-border/40 overflow-hidden">
+            <CardHeader className="border-b border-border/40 bg-surface-2">
               <CardTitle className="font-serif text-xl flex items-center gap-2 text-secondary-foreground">
                 <Package className="w-5 h-5 opacity-70" />
                 Сумка
@@ -141,7 +141,7 @@ export function Inventory() {
               ) : (
                 <div className="space-y-4">
                   {bagItems.map(item => (
-                    <Card key={item.id} className="bg-black/40 border-white/5 hover:border-white/10 transition-all">
+                    <Card key={item.id} className="bg-surface-2 border-border/40 hover:border-primary/20 transition-all">
                       <CardContent className="p-4">
                         <div className="flex justify-between items-start mb-2">
                           <div>
@@ -163,7 +163,7 @@ export function Inventory() {
                           </Button>
                         </div>
                         {item.stats && Object.keys(item.stats).length > 0 && (
-                          <div className="mt-3 pt-3 border-t border-white/5 grid grid-cols-2 gap-2 text-xs font-mono">
+                          <div className="mt-3 pt-3 border-t border-border/40 grid grid-cols-2 gap-2 text-xs font-mono">
                             {Object.entries(item.stats).map(([stat, val]) => (
                               <div key={stat} className="flex justify-between text-muted-foreground">
                                 <span>{stat}:</span>

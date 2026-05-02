@@ -100,7 +100,7 @@ export function World() {
     <Layout title={currentLocation?.name ?? "Неизведанные земли"} subtitle={currentLocation?.region}>
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
         {/* Location card */}
-        <Card className="bg-card/70 border-border/40">
+        <Card className="card-parchment bg-card/70 border-border/40">
           <CardHeader className="pb-2">
             <CardTitle className="font-serif text-base flex items-center gap-2 text-primary">
               <MapPin className="w-4 h-4 opacity-80" />
@@ -143,7 +143,7 @@ export function World() {
         )}
 
         {/* NPCs */}
-        <Card className="bg-card/70 border-border/40">
+        <Card className="card-parchment bg-card/70 border-border/40">
           <CardHeader className="pb-2">
             <CardTitle className="font-serif text-base flex items-center gap-2 text-secondary-foreground">
               <Users className="w-4 h-4 opacity-80" />
@@ -226,7 +226,7 @@ export function World() {
 
         {/* Enemies */}
         {enemies.length > 0 ? (
-          <Card className="bg-card/70 border-border/40">
+          <Card className="card-parchment bg-card/70 border-border/40">
             <CardHeader className="pb-2">
               <CardTitle className="font-serif text-base flex items-center gap-2 text-destructive">
                 <Swords className="w-4 h-4 opacity-80" />

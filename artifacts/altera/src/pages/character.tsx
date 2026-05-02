@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { Skull, Heart, Zap, Sparkles, Shield, Sword, Eye, Brain, Plus, Sprout } from "lucide-react";
+import { Skull, Heart, Zap, Sparkles, Shield, Sword, Eye, Brain, Plus, Sprout, Ghost, Flame, Star } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface RegenRate { hpPerSec: number; manaPerSec: number; zone: "safe" | "wilderness" | "dangerous" }
@@ -18,15 +18,16 @@ export function CharacterSheet() {
     return (
       <Layout>
         <div className="flex-1 flex items-center justify-center">
-          <Skull className="w-8 h-8 text-primary animate-pulse opacity-50" />
+          <svg className="w-10 h-10 text-primary runic-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <circle cx="12" cy="12" r="10" strokeDasharray="4 2" />
+            <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+          </svg>
         </div>
       </Layout>
     );
   }
 
   const character = characterData.character;
-  // P7 — passive regen rate is appended by the server on every GET /character.
-  // The orval-generated type doesn't know about it, so we read it loosely.
   const regen = (character as unknown as { regen?: RegenRate }).regen ?? null;
   const zoneLabel: Record<string, string> = {
     safe: "Безопасная зона — раны затягиваются быстро",
@@ -52,18 +53,19 @@ export function CharacterSheet() {
 
   return (
     <Layout>
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         className="space-y-6"
       >
         <header className="border-b border-border/40 pb-6">
+          <div className="ornament-rule mb-2">&nbsp;</div>
           <h1 className="text-3xl font-serif text-foreground tracking-wide mb-2">Сущность</h1>
           <p className="text-muted-foreground font-serif italic text-sm">Ваша душа, запечатленная в числах</p>
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="bg-black/20 border-white/5">
+          <Card className="card-parchment bg-card/70 border-border/40">
             <CardHeader>
               <CardTitle className="font-serif text-xl flex items-center gap-2">
                 <Heart className="w-5 h-5 text-destructive opacity-70" />
@@ -71,69 +73,31 @@ export function CharacterSheet() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm font-mono text-muted-foreground">
-                  <span>Здоровье</span>
-                  <span className="text-destructive">{character.hp} / {character.maxHp}</span>
-                </div>
-                <div className="h-2 w-full bg-black/50 rounded-full overflow-hidden border border-white/5">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${(character.hp / character.maxHp) * 100}%` }}
-                    className="h-full bg-destructive"
-                  />
-                </div>
-              </div>
+              <VitalBar label="Здоровье" icon={Heart} value={character.hp} max={character.maxHp} color="bg-destructive" valueClass="text-destructive" />
+              <VitalBar label="Мана" icon={Flame} value={character.mana} max={character.maxMana} color="bg-secondary" valueClass="text-secondary-foreground" />
+              <VitalBar label="Энергия" icon={Zap} value={character.energy} max={character.maxEnergy} color="bg-primary/70" valueClass="text-primary" />
 
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm font-mono text-muted-foreground">
-                  <span>Мана</span>
-                  <span className="text-secondary-foreground">{character.mana} / {character.maxMana}</span>
-                </div>
-                <div className="h-2 w-full bg-black/50 rounded-full overflow-hidden border border-white/5">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${(character.mana / character.maxMana) * 100}%` }}
-                    className="h-full bg-secondary"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm font-mono text-muted-foreground">
-                  <span>Энергия</span>
-                  <span className="text-yellow-500">{character.energy} / {character.maxEnergy}</span>
-                </div>
-                <div className="h-2 w-full bg-black/50 rounded-full overflow-hidden border border-white/5">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${(character.energy / character.maxEnergy) * 100}%` }}
-                    className="h-full bg-yellow-500"
-                  />
-                </div>
-              </div>
-
-              {/* P7 — passive regeneration replaces the old "Отдых у костра" button.
-                  Healing happens automatically over time, faster in safe zones. */}
-              <div className="pt-4 border-t border-white/5">
+              <div className="pt-4 border-t border-border/40">
                 <div
-                  className={`rounded border p-3 flex items-start gap-3 ${
+                  className={cn(
+                    "rounded border p-3 flex items-start gap-3",
                     regen?.zone === "safe"
                       ? "border-primary/30 bg-primary/5"
                       : regen?.zone === "dangerous"
                       ? "border-destructive/30 bg-destructive/5"
-                      : "border-white/10 bg-white/[0.02]"
-                  }`}
+                      : "border-border/40 bg-surface-2"
+                  )}
                   data-testid="regen-card"
                 >
                   <Sprout
-                    className={`w-5 h-5 mt-0.5 ${
+                    className={cn(
+                      "w-5 h-5 mt-0.5",
                       regen?.zone === "safe"
                         ? "text-primary"
                         : regen?.zone === "dangerous"
                         ? "text-destructive"
                         : "text-muted-foreground"
-                    }`}
+                    )}
                   />
                   <div className="flex-1 min-w-0">
                     <p className="font-serif text-sm text-foreground">Естественное восстановление</p>
@@ -152,10 +116,10 @@ export function CharacterSheet() {
             </CardContent>
           </Card>
 
-          <Card className="bg-black/20 border-white/5">
+          <Card className="card-parchment bg-card/70 border-border/40">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="font-serif text-xl flex items-center gap-2">
-                <Zap className="w-5 h-5 text-primary opacity-70" />
+                <Star className="w-5 h-5 text-primary opacity-70" />
                 Атрибуты
               </CardTitle>
               {character.statPoints > 0 && (
@@ -167,9 +131,9 @@ export function CharacterSheet() {
             <CardContent>
               <div className="space-y-4">
                 {stats.map((stat) => (
-                  <div key={stat.key} className="flex items-center justify-between p-3 rounded bg-black/40 border border-white/5 group hover:border-white/10 transition-colors">
+                  <div key={stat.key} className="flex items-center justify-between p-3 rounded bg-surface-2 border border-border/40 group hover:border-primary/20 transition-colors">
                     <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-full bg-white/5 ${stat.color}`}>
+                      <div className={`p-2.5 rounded-full bg-surface-3 ${stat.color}`}>
                         <stat.icon className="w-4 h-4" />
                       </div>
                       <span className="font-serif text-foreground/90">{stat.label}</span>
@@ -177,10 +141,10 @@ export function CharacterSheet() {
                     <div className="flex items-center gap-4">
                       <span className="font-mono text-lg text-primary">{stat.value}</span>
                       {character.statPoints > 0 && (
-                        <Button 
-                          size="icon" 
-                          variant="ghost" 
-                          className="h-8 w-8 rounded-full hover:bg-primary/20 hover:text-primary transition-colors"
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 rounded-full hover:bg-primary/20 hover:text-primary transition-colors btn-press"
                           onClick={() => handleAllocate(stat.key)}
                           disabled={allocateStat.isPending}
                         >
@@ -195,17 +159,46 @@ export function CharacterSheet() {
           </Card>
         </div>
 
-        {/* v2 — Психика. The hidden traits panel. We *do* show the bars, so
-            the player has a faint sense of who their character is becoming,
-            but the dominant trait only gets a name (Архетип) once it clearly
-            wins. Fame is the public counterpart and always visible. */}
         <PsychePanel character={character} />
       </motion.div>
     </Layout>
   );
 }
 
-// ─── v2 — Psyche panel ────────────────────────────────────────────────────
+function VitalBar({ label, icon: Icon, value, max, color, valueClass }: {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  value: number;
+  max: number;
+  color: string;
+  valueClass: string;
+}) {
+  const pct = max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0;
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-between text-sm font-mono text-muted-foreground">
+        <span className="inline-flex items-center gap-1.5">
+          <Icon className="h-3.5 w-3.5" /> {label}
+        </span>
+        <span className={valueClass}>{value} / {max}</span>
+      </div>
+      <div className="h-2.5 w-full bg-black/50 rounded-sm overflow-hidden border border-white/5 bar-segmented">
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${pct}%` }}
+          className={cn("h-full rounded-sm", color)}
+          style={{ willChange: "transform" }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function cn(...args: (string | undefined | false)[]) {
+  return args.filter(Boolean).join(" ");
+}
+
+// ─── Psyche panel ────────────────────────────────────────────────────
 interface PsycheCharacter {
   archetype?: string | null;
   cruelty?: number;
@@ -217,14 +210,14 @@ interface PsycheCharacter {
 
 function PsychePanel({ character }: { character: PsycheCharacter }) {
   const traits = [
-    { key: "cruelty",   label: "Жестокость", value: character.cruelty   ?? 0, hint: "Растёт от добиваний и пролитой крови", color: "bg-red-500/70" },
-    { key: "curiosity", label: "Любопытство", value: character.curiosity ?? 0, hint: "Растёт от диалогов и открытий", color: "bg-blue-500/70" },
-    { key: "loyalty",   label: "Верность",    value: character.loyalty   ?? 0, hint: "Растёт от выполненных обещаний", color: "bg-amber-500/70" },
-    { key: "fearLevel", label: "Страх",       value: character.fearLevel ?? 0, hint: "Растёт от поражений и бегства", color: "bg-violet-500/70" },
+    { key: "cruelty",   label: "Жестокость", value: character.cruelty   ?? 0, hint: "Растёт от добиваний и пролитой крови", color: "bg-red-500/70", icon: Skull },
+    { key: "curiosity", label: "Любопытство", value: character.curiosity ?? 0, hint: "Растёт от диалогов и открытий", color: "bg-blue-500/70", icon: Eye },
+    { key: "loyalty",   label: "Верность",    value: character.loyalty   ?? 0, hint: "Растёт от выполненных обещаний", color: "bg-amber-500/70", icon: Shield },
+    { key: "fearLevel", label: "Страх",       value: character.fearLevel ?? 0, hint: "Растёт от поражений и бегства", color: "bg-violet-500/70", icon: Ghost },
   ];
   const fame = character.fame ?? 0;
   return (
-    <Card className="bg-black/20 border-white/5" data-testid="psyche-panel">
+    <Card className="card-parchment bg-card/70 border-border/40" data-testid="psyche-panel">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="font-serif text-xl flex items-center gap-2">
           <Brain className="w-5 h-5 text-secondary-foreground opacity-70" />
@@ -233,7 +226,7 @@ function PsychePanel({ character }: { character: PsycheCharacter }) {
         {character.archetype ? (
           <Badge
             variant="outline"
-            className="border-primary/40 text-primary font-serif glow-important"
+            className="border-primary/40 text-primary font-serif glow-important shimmer-legendary"
             data-testid="archetype-badge"
           >
             {character.archetype}
@@ -244,26 +237,31 @@ function PsychePanel({ character }: { character: PsycheCharacter }) {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {traits.map((t) => (
-            <div key={t.key} className="surface-3 rounded p-3" data-testid={`psyche-${t.key}`}>
-              <div className="flex justify-between text-sm font-mono">
-                <span className="text-secondary-soft">{t.label}</span>
-                <span className="text-primary-soft">{t.value}</span>
+          {traits.map((t) => {
+            const Icon = t.icon;
+            return (
+              <div key={t.key} className="surface-3 rounded p-3" data-testid={`psyche-${t.key}`}>
+                <div className="flex justify-between text-sm font-mono">
+                  <span className="text-secondary-soft inline-flex items-center gap-1.5">
+                    <Icon className="h-3.5 w-3.5" /> {t.label}
+                  </span>
+                  <span className="text-primary-soft">{t.value}</span>
+                </div>
+                <div className="mt-1.5 h-1.5 w-full bg-black/60 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(100, t.value)}%` }}
+                    transition={{ duration: 0.4 }}
+                    className={`h-full ${t.color}`}
+                    style={{ willChange: "transform" }}
+                  />
+                </div>
+                <p className="text-[11px] text-muted-soft italic mt-1.5 leading-snug">{t.hint}</p>
               </div>
-              <div className="mt-1.5 h-1.5 w-full bg-black/60 rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${Math.min(100, t.value)}%` }}
-                  transition={{ duration: 0.4 }}
-                  className={`h-full ${t.color}`}
-                />
-              </div>
-              <p className="text-[11px] text-muted-soft italic mt-1.5 leading-snug">{t.hint}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        {/* Fame — public renown, can go negative. Single bar centred at 0. */}
         <div className="surface-3 rounded p-3" data-testid="psyche-fame">
           <div className="flex justify-between text-sm font-mono">
             <span className="text-secondary-soft">Слава</span>
@@ -272,7 +270,6 @@ function PsychePanel({ character }: { character: PsycheCharacter }) {
             </span>
           </div>
           <div className="mt-1.5 relative h-1.5 w-full bg-black/60 rounded-full overflow-hidden">
-            {/* Centre tick */}
             <div className="absolute left-1/2 top-0 bottom-0 w-px bg-white/30" />
             <motion.div
               initial={{ width: 0 }}
@@ -282,6 +279,7 @@ function PsychePanel({ character }: { character: PsycheCharacter }) {
               }}
               transition={{ duration: 0.4 }}
               className={`absolute top-0 h-full ${fame >= 0 ? "bg-primary/70" : "bg-destructive/70"}`}
+              style={{ willChange: "transform" }}
             />
           </div>
           <p className="text-[11px] text-muted-soft italic mt-1.5 leading-snug">

@@ -21,16 +21,20 @@ export function BottomNav({ hasCharacter }: BottomNavProps) {
   const items: NavItem[] = [
     { href: "/", label: "Главная", icon: Castle, matches: (p) => p === "/" || p.startsWith("/world") },
     { href: "/map", label: "Карта", icon: Map },
-    { href: "/character", label: "Персонаж", icon: User },
-    { href: "/inventory", label: "Инвентарь", icon: Shield },
+    { href: "/character", label: "Герой", icon: User },
+    { href: "/inventory", label: "Сумка", icon: Shield },
   ];
 
   return (
     <nav
       role="navigation"
       aria-label="Главное меню"
-      className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/60 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 pb-[env(safe-area-inset-bottom)]"
+      className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-md pb-[env(safe-area-inset-bottom)]"
     >
+      {/* Gold decorative top border with glow — WoW action bar chrome */}
+      <div className="h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
+      <div className="h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+
       <ul className="grid grid-cols-4 gap-0">
         {items.map((item) => {
           const isActive = item.matches ? item.matches(location) : location === item.href || location.startsWith(item.href + "/");
@@ -43,11 +47,16 @@ export function BottomNav({ hasCharacter }: BottomNavProps) {
                 aria-current={isActive ? "page" : undefined}
                 data-testid={`nav-${item.href.replace("/", "") || "home"}`}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-1 py-2.5 px-1 text-[10px] font-serif uppercase tracking-wider transition-colors",
+                  "flex flex-col items-center justify-center gap-1.5 py-3 px-1 text-[11px] font-serif uppercase tracking-wider transition-all btn-press",
                   isActive ? "text-primary" : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                <Icon className={cn("h-5 w-5", isActive && "drop-shadow-[0_0_6px_rgba(212,175,55,0.45)]")} />
+                <div className="relative">
+                  <Icon className={cn("h-6 w-6", isActive && "drop-shadow-[0_0_8px_rgba(212,175,55,0.5)]")} />
+                  {isActive && (
+                    <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full bg-primary shadow-[0_0_6px_rgba(212,175,55,0.6)]" />
+                  )}
+                </div>
                 <span className="leading-none truncate w-full text-center">{item.label}</span>
               </Link>
             </li>

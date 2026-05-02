@@ -121,7 +121,7 @@ function QuestCard({
     <Card
       data-testid={`quest-${q.id}`}
       className={cn(
-        "border bg-card/70 backdrop-blur",
+        "border bg-card/70 backdrop-blur card-parchment",
         isCompleted ? "border-border/40 opacity-70" : q.status === "active" ? "border-primary/40" : "border-border/50",
       )}
     >

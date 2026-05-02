@@ -341,14 +341,12 @@ function MiniMap({
         {/* Background gradient + grid + filters */}
         <defs>
           <radialGradient id="vignette" cx="50%" cy="50%" r="60%">
-            <stop offset="0%" stopColor="#1f2633" stopOpacity="0" />
-            <stop offset="100%" stopColor="#0f1115" stopOpacity="0.85" />
+            <stop offset="0%" stopColor="#1a1714" stopOpacity="0" />
+            <stop offset="100%" stopColor="#12100e" stopOpacity="0.85" />
           </radialGradient>
           <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#aab1c0" strokeOpacity="0.04" strokeWidth="1" />
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#b0a898" strokeOpacity="0.04" strokeWidth="1" />
           </pattern>
-          {/* v2 — Frontier glow filter: a soft amber halo behind un-discovered
-              border nodes, telling the eye where the map opens up next. */}
           <filter id="frontierGlow" x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur stdDeviation="2.4" result="b" />
             <feMerge>
@@ -357,7 +355,7 @@ function MiniMap({
             </feMerge>
           </filter>
         </defs>
-        <rect width={SVG_W} height={SVG_H} fill="#0f1115" />
+        <rect width={SVG_W} height={SVG_H} fill="#12100e" />
         <rect width={SVG_W} height={SVG_H} fill="url(#grid)" />
 
         {/* v2 — Danger zone halos (drawn first so edges/nodes layer above).
@@ -441,9 +439,11 @@ function MiniMap({
               {isSel && (
                 <circle cx={cx} cy={cy} r={10} fill="none" stroke="#c79bd9" strokeWidth={1.4} />
               )}
-              <circle cx={cx} cy={cy} r={5.2} fill={fill} stroke="#0f1115" strokeWidth={1.2} />
+              {/* Invisible enlarged touch target for mobile */}
+              <circle cx={cx} cy={cy} r={14} fill="transparent" />
+              <circle cx={cx} cy={cy} r={5.2} fill={fill} stroke="#12100e" strokeWidth={1.2} />
               {eventCount > 0 && (
-                <circle cx={cx + 5} cy={cy - 5} r={2.6} fill="#e36a6a" stroke="#0f1115" strokeWidth={1} />
+                <circle cx={cx + 5} cy={cy - 5} r={2.6} fill="#e36a6a" stroke="#12100e" strokeWidth={1} />
               )}
               {l.isReachable && !l.isCurrent && (
                 <circle cx={cx} cy={cy} r={7} fill="none" stroke="#e6c769" strokeOpacity={0.5} strokeWidth={1} strokeDasharray="2 2" />
@@ -453,10 +453,10 @@ function MiniMap({
                 y={cy + 14}
                 textAnchor="middle"
                 fontSize="8"
-                fill={l.isDiscovered ? "#e6e3da" : "#6b7384"}
+                fill={l.isDiscovered ? "#e6e0d4" : "#7a7268"}
                 fontFamily="Plus Jakarta Sans, sans-serif"
                 fontWeight={l.isCurrent ? 700 : 500}
-                style={{ paintOrder: "stroke", stroke: "#0f1115", strokeWidth: 2.5 }}
+                style={{ paintOrder: "stroke", stroke: "#12100e", strokeWidth: 2.5 }}
               >
                 {l.isDiscovered ? l.name : "???"}
               </text>
@@ -508,11 +508,15 @@ function LocationCard({
       tabIndex={0}
       data-testid={`location-${loc.id}`}
       className={cn(
-        "cursor-pointer transition-all border bg-card/70 backdrop-blur",
+        "cursor-pointer transition-all border bg-card/70 backdrop-blur card-parchment",
         loc.isCurrent && "border-primary/60 shadow-[0_0_18px_rgba(212,175,55,0.18)]",
         !loc.isCurrent && isSelected && "border-secondary/60 ring-1 ring-secondary/40",
         !isSelected && !loc.isCurrent && "border-border/40 hover:border-border",
       )}
+      style={!loc.isCurrent && !loc.isSafe ? {
+        borderLeftColor: DANGER_STROKE[Math.max(0, Math.min(5, loc.dangerLevel ?? 0))],
+        borderLeftWidth: "3px",
+      } : undefined}
     >
       <CardContent className="p-3">
         <div className="flex items-start gap-3">

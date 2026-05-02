@@ -7,6 +7,7 @@ import {
   getGetNpcQueryKey,
   getListNpcsQueryKey,
   getGetCharacterQueryKey,
+  SendDialogueRequestTone,
 } from "@workspace/api-client-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -102,9 +103,9 @@ export function NpcDialog({ npcId, open, onClose }: NpcDialogProps) {
     },
   });
 
-  const { data: npc } = useGetNpc(npcId ?? "", { query: { enabled: !!npcId && open } });
+  const { data: npc } = useGetNpc(npcId ?? "", { query: { enabled: !!npcId && open, queryKey: getGetNpcQueryKey(npcId ?? "") } });
   const { data: history } = useGetDialogue(npcId ?? "", {
-    query: { enabled: !!npcId && open && tab === "talk", refetchOnWindowFocus: false },
+    query: { enabled: !!npcId && open && tab === "talk", refetchOnWindowFocus: false, queryKey: getGetDialogueQueryKey(npcId ?? "") },
   });
   const send = useSendDialogue();
 
@@ -131,7 +132,7 @@ export function NpcDialog({ npcId, open, onClose }: NpcDialogProps) {
     setText("");
     haptic("light");
     send.mutate(
-      { npcId, data: { content: playerLine, tone } },
+      { npcId, data: { content: playerLine, tone: tone as SendDialogueRequestTone } },
       {
         onSuccess: (data) => {
           haptic("success");
@@ -151,7 +152,7 @@ export function NpcDialog({ npcId, open, onClose }: NpcDialogProps) {
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent
         className={cn(
-          "p-0 gap-0 bg-card border-primary/20 flex flex-col overflow-hidden",
+          "p-0 gap-0 bg-card border-primary/20 flex flex-col overflow-hidden card-parchment",
           // Mobile: full-screen sheet. Desktop: classic centered dialog.
           "w-screen h-[100dvh] max-w-none rounded-none top-0 left-0 translate-x-0 translate-y-0",
           "sm:w-[95vw] sm:max-w-md sm:h-[85vh] sm:rounded-md sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2",
@@ -163,7 +164,7 @@ export function NpcDialog({ npcId, open, onClose }: NpcDialogProps) {
               <DialogTitle className="font-serif text-primary text-lg tracking-wide flex items-center gap-2 flex-wrap">
                 <span className="truncate">{npc?.name ?? "Собеседник"}</span>
                 {npc?.title && (
-                  <Badge variant="outline" className="text-[10px] uppercase shrink-0">
+                  <Badge variant="outline" className="text-[10px] uppercase shrink-0 border-primary/30 text-primary">
                     {npc.title}
                   </Badge>
                 )}
@@ -176,7 +177,7 @@ export function NpcDialog({ npcId, open, onClose }: NpcDialogProps) {
               type="button"
               onClick={onClose}
               aria-label="Закрыть"
-              className="shrink-0 -mt-1 -mr-1 h-9 w-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-background/60"
+              className="shrink-0 -mt-1 -mr-1 h-9 w-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-background/60 btn-press"
               data-testid="dialog-close"
             >
               <X className="h-5 w-5" />
@@ -184,7 +185,7 @@ export function NpcDialog({ npcId, open, onClose }: NpcDialogProps) {
           </div>
 
           {isMerchant && (
-            <div className="mt-3 flex gap-1.5 bg-background/40 rounded-md p-1 border border-border/40">
+            <div className="mt-3 flex gap-1.5 bg-surface-2 rounded-md p-1 border border-border/40">
               <button
                 type="button"
                 onClick={() => {
@@ -225,7 +226,7 @@ export function NpcDialog({ npcId, open, onClose }: NpcDialogProps) {
           <>
             <div ref={scrollerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
               {npc?.shortProfile && history?.length === 0 && (
-                <p className="text-sm text-muted-foreground font-serif italic leading-relaxed">
+                <p className="text-sm text-muted-foreground font-serif italic leading-relaxed border-l-2 border-primary/30 pl-3">
                   {npc.shortProfile}
                 </p>
               )}
@@ -233,10 +234,10 @@ export function NpcDialog({ npcId, open, onClose }: NpcDialogProps) {
                 <div
                   key={m.id}
                   className={cn(
-                    "max-w-[85%] rounded-lg px-3 py-2 text-sm leading-relaxed",
+                    "max-w-[85%] rounded-md px-3 py-2 text-sm leading-relaxed",
                     m.role === "player"
-                      ? "ml-auto bg-primary/15 border border-primary/30 text-foreground"
-                      : "mr-auto bg-muted/40 border border-border/50 text-foreground/90",
+                      ? "ml-auto bg-primary/10 border border-primary/30 text-foreground"
+                      : "mr-auto bg-surface-2 border border-border/50 text-foreground/90",
                   )}
                   data-testid={`dialogue-${m.role}`}
                 >
@@ -247,8 +248,10 @@ export function NpcDialog({ npcId, open, onClose }: NpcDialogProps) {
                 </div>
               ))}
               {send.isPending && (
-                <div className="mr-auto bg-muted/40 border border-border/50 rounded-lg px-3 py-2 text-xs text-muted-foreground italic max-w-[85%]">
-                  {npc?.name ?? "Он"} обдумывает ответ...
+                <div className="mr-auto bg-surface-2 border border-border/50 rounded-md px-3 py-2 text-xs text-muted-foreground italic max-w-[85%] inline-flex items-center gap-1.5">
+                  <span className="typing-dot-1 inline-block w-1.5 h-1.5 rounded-full bg-primary/60" />
+                  <span className="typing-dot-2 inline-block w-1.5 h-1.5 rounded-full bg-primary/60" />
+                  <span className="typing-dot-3 inline-block w-1.5 h-1.5 rounded-full bg-primary/60" />
                 </div>
               )}
             </div>
@@ -424,7 +427,7 @@ function ShopPanel({
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="px-4 py-3 border-b border-border/40 bg-background/40 flex items-center justify-between gap-3">
+      <div className="px-4 py-3 border-b border-border/40 bg-surface-2 flex items-center justify-between gap-3">
         <p className="text-xs text-muted-foreground italic font-serif line-clamp-2 flex-1 min-w-0">
           {data.greeting}
         </p>
@@ -469,7 +472,7 @@ function ShopRow({
   const canAfford = silver >= item.price;
   return (
     <div
-      className="rounded-md border border-border/40 bg-background/40 p-3"
+      className="rounded-md border border-border/40 bg-surface-2 p-3"
       data-testid={`shop-item-${item.catalogKey}`}
     >
       <div className="flex items-start justify-between gap-2">

@@ -38,7 +38,7 @@ export function Ledger() {
           <p className="text-muted-foreground font-serif italic text-sm">Мир помнит каждое ваше слово и каждое действие.</p>
         </header>
 
-        <Card className="flex-1 flex flex-col bg-black/20 border-white/5 overflow-hidden">
+        <Card className="flex-1 flex flex-col card-parchment bg-card/70 border-border/40 overflow-hidden">
           <ScrollArea className="flex-1 p-4">
             {ledger.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-muted-foreground italic font-serif py-20">
@@ -56,7 +56,7 @@ export function Ledger() {
                     className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active"
                   >
                     {/* Icon */}
-                    <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white/10 bg-black text-primary shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full border border-border/40 bg-surface-1 text-primary shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
                       {entry.eventType === 'battle' ? <span className="text-destructive font-mono text-xs">⚔</span> :
                        entry.eventType === 'dialogue' ? <span className="text-secondary-foreground font-mono text-xs">❝</span> :
                        entry.eventType === 'gift' ? <span className="text-primary font-mono text-xs">✦</span> :
@@ -64,14 +64,14 @@ export function Ledger() {
                     </div>
                     
                     {/* Content */}
-                    <Card className="w-[calc(100%-4rem)] md:w-[calc(50%-3rem)] bg-black/40 border-white/5 hover:border-primary/20 transition-colors">
+                    <Card className="w-[calc(100%-4rem)] md:w-[calc(50%-3rem)] bg-surface-2 border-border/40 hover:border-primary/20 transition-colors">
                       <CardContent className="p-4">
                         <div className="flex flex-col gap-2">
                           <div className="flex items-center justify-between">
                             <span className="text-[10px] font-mono text-muted-foreground tracking-widest uppercase">
                               {format(new Date(entry.createdAt), 'dd.MM.yyyy HH:mm')}
                             </span>
-                            <Badge variant="outline" className={`text-[10px] font-mono border-white/10 uppercase tracking-widest ${
+                            <Badge variant="outline" className={`text-[10px] font-mono border-border/40 uppercase tracking-widest ${
                               entry.severity > 2 ? 'text-destructive border-destructive/30' : 
                               entry.severity > 1 ? 'text-secondary-foreground border-secondary/30' : 
                               'text-muted-foreground'
